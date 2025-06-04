@@ -8,14 +8,8 @@ import { Play, Save, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
 import RealTimeMonitor from '@/components/RealTimeMonitor';
-
-interface TypingEvent {
-  timestamp: number;
-  type: 'keydown' | 'keyup' | 'paste';
-  key?: string;
-  textLength: number;
-  position: number;
-}
+import { apiService, TypingEvent } from '@/services/api';
+import { DetectionEngine } from '@/services/detectionEngine';
 
 const CodingInterface = () => {
   const [code, setCode] = useState('');
@@ -24,8 +18,40 @@ const CodingInterface = () => {
   const [typingEvents, setTypingEvents] = useState<TypingEvent[]>([]);
   const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high'>('low');
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [realTimeDetection, setRealTimeDetection] = useState({
+    verdict: 'human' as 'human' | 'likely_bot' | 'ai_assisted',
+    confidence: 0,
+    suspiciousActivities: [] as string[]
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  // Real-time analysis effect
+  useEffect(() => {
+    if (sessionActive && typingEvents.length > 10) {
+      const analysis = DetectionEngine.analyze(
+        typingEvents, 
+        code, 
+        sessionStartTime ? Date.now() - sessionStartTime : 0
+      );
+      
+      setRiskLevel(analysis.riskLevel);
+      setRealTimeDetection({
+        verdict: analysis.verdict,
+        confidence: analysis.confidence,
+        suspiciousActivities: analysis.suspiciousActivities
+      });
+
+      // Alert on high risk detection
+      if (analysis.riskLevel === 'high' && analysis.confidence > 70) {
+        toast({
+          title: "High Risk Activity Detected",
+          description: `Confidence: ${analysis.confidence}% - ${analysis.suspiciousActivities[0]}`,
+          variant: "destructive"
+        });
+      }
+    }
+  }, [typingEvents, code, sessionActive, sessionStartTime, toast]);
 
   // Track typing behavior
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -55,12 +81,12 @@ const CodingInterface = () => {
     
     setTypingEvents(prev => [...prev, event]);
     
-    // Large paste operations are suspicious
+    // Immediate paste analysis
     if (pastedText.length > 50) {
       setRiskLevel('high');
       toast({
-        title: "Suspicious Activity Detected",
-        description: "Large text paste detected",
+        title: "Large Paste Detected",
+        description: `${pastedText.length} characters pasted`,
         variant: "destructive"
       });
     }
@@ -80,37 +106,66 @@ const CodingInterface = () => {
     setSessionStartTime(Date.now());
     setTypingEvents([]);
     setRiskLevel('low');
+    setRealTimeDetection({
+      verdict: 'human',
+      confidence: 0,
+      suspiciousActivities: []
+    });
     
     toast({
       title: "Session Started",
-      description: "Monitoring has begun"
+      description: "Real-time monitoring activated"
     });
   };
 
-  const endSession = () => {
-    setSessionActive(false);
-    
-    // Simulate sending data to backend
-    const sessionData = {
-      candidateName,
-      code,
-      typingEvents,
-      duration: sessionStartTime ? Date.now() - sessionStartTime : 0,
-      riskLevel
-    };
-    
-    console.log('Session data:', sessionData);
-    
-    toast({
-      title: "Session Ended",
-      description: "Data saved for analysis"
-    });
+  const endSession = async () => {
+    if (!sessionStartTime) return;
+
+    // Perform final analysis
+    const finalAnalysis = DetectionEngine.analyze(
+      typingEvents, 
+      code, 
+      Date.now() - sessionStartTime
+    );
+
+    // Save session data
+    try {
+      await apiService.saveSession({
+        candidateName,
+        code,
+        typingEvents,
+        duration: Date.now() - sessionStartTime,
+        riskLevel: finalAnalysis.riskLevel,
+        verdict: finalAnalysis.verdict,
+        suspiciousActivities: finalAnalysis.suspiciousActivities,
+        typingMetrics: {
+          avgWPM: finalAnalysis.detailedMetrics.avgWPM,
+          maxWPM: finalAnalysis.detailedMetrics.maxWPM,
+          backspaceRatio: finalAnalysis.detailedMetrics.backspaceRatio,
+          pasteCount: finalAnalysis.detailedMetrics.pasteCount
+        }
+      });
+
+      setSessionActive(false);
+      
+      toast({
+        title: "Session Ended",
+        description: `Final verdict: ${finalAnalysis.verdict.replace('_', ' ')} (${finalAnalysis.confidence}% confidence)`,
+        variant: finalAnalysis.verdict === 'human' ? 'default' : 'destructive'
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save session data",
+        variant: "destructive"
+      });
+    }
   };
 
   const runCode = () => {
     toast({
       title: "Code Execution",
-      description: "Code would be executed in a real environment"
+      description: "In a real environment, this would execute the code safely"
     });
   };
 
@@ -139,11 +194,18 @@ const CodingInterface = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Coding Interview</CardTitle>
-              <Badge className={getRiskColor()}>
-                {getRiskIcon()}
-                <span className="ml-1 capitalize">{riskLevel} Risk</span>
-              </Badge>
+              <CardTitle>Coding Interview - Enhanced Detection</CardTitle>
+              <div className="flex items-center space-x-2">
+                <Badge className={getRiskColor()}>
+                  {getRiskIcon()}
+                  <span className="ml-1 capitalize">{riskLevel} Risk</span>
+                </Badge>
+                {sessionActive && realTimeDetection.confidence > 0 && (
+                  <Badge variant="outline">
+                    {realTimeDetection.confidence}% confidence
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -171,7 +233,7 @@ const CodingInterface = () => {
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
-                Problem: Implement a function to reverse a string
+                Problem: Implement a function to reverse a string efficiently
               </label>
               <Textarea
                 ref={textareaRef}
@@ -184,6 +246,17 @@ const CodingInterface = () => {
                 disabled={!sessionActive}
               />
             </div>
+
+            {sessionActive && realTimeDetection.suspiciousActivities.length > 0 && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <h4 className="text-sm font-medium text-red-800 mb-2">Live Detection Alerts:</h4>
+                <div className="space-y-1">
+                  {realTimeDetection.suspiciousActivities.slice(-3).map((activity, index) => (
+                    <div key={index} className="text-xs text-red-700">{activity}</div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="flex space-x-2">
               <Button onClick={runCode} disabled={!sessionActive}>
@@ -212,7 +285,7 @@ const CodingInterface = () => {
           onSuspiciousActivity={(activity) => {
             setRiskLevel('high');
             toast({
-              title: "Suspicious Activity",
+              title: "System Alert",
               description: activity,
               variant: "destructive"
             });
