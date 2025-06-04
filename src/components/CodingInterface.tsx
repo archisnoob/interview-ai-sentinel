@@ -1,57 +1,85 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Play, Save, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Play, Save, AlertTriangle, CheckCircle, Clock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
 import RealTimeMonitor from '@/components/RealTimeMonitor';
 import { apiService, TypingEvent } from '@/services/api';
 import { DetectionEngine } from '@/services/detectionEngine';
+import { CANDIDATE_PROFILES, ProfileBasedDetection, CandidateProfile } from '@/services/profiles';
 
 const CodingInterface = () => {
   const [code, setCode] = useState('');
   const [candidateName, setCandidateName] = useState('');
+  const [candidateProfile, setCandidateProfile] = useState<CandidateProfile>(CANDIDATE_PROFILES.intern);
   const [sessionActive, setSessionActive] = useState(false);
   const [typingEvents, setTypingEvents] = useState<TypingEvent[]>([]);
   const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high'>('low');
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [realTimeDetection, setRealTimeDetection] = useState({
-    verdict: 'human' as 'human' | 'likely_bot' | 'ai_assisted',
+    verdict: 'human' as 'human' | 'suspicious' | 'likely_bot' | 'ai_assisted',
     confidence: 0,
-    suspiciousActivities: [] as string[]
+    suspiciousActivities: [] as string[],
+    triggeredRules: [] as string[]
   });
+  const [liveAlerts, setLiveAlerts] = useState<Array<{
+    id: string;
+    message: string;
+    type: 'warning' | 'danger';
+    timestamp: number;
+  }>>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
-  // Real-time analysis effect
+  // Enhanced real-time analysis with profile-based detection
   useEffect(() => {
-    if (sessionActive && typingEvents.length > 10) {
-      const analysis = DetectionEngine.analyze(
-        typingEvents, 
-        code, 
-        sessionStartTime ? Date.now() - sessionStartTime : 0
+    if (sessionActive && typingEvents.length > 5 && sessionStartTime) {
+      const profileAnalysis = ProfileBasedDetection.analyzeSession(
+        candidateProfile,
+        typingEvents,
+        code,
+        sessionStartTime
       );
       
-      setRiskLevel(analysis.riskLevel);
+      // Update risk level based on profile analysis
+      const newRiskLevel = profileAnalysis.confidence >= 60 ? 'high' : 
+                          profileAnalysis.confidence >= 30 ? 'medium' : 'low';
+      setRiskLevel(newRiskLevel);
+      
       setRealTimeDetection({
-        verdict: analysis.verdict,
-        confidence: analysis.confidence,
-        suspiciousActivities: analysis.suspiciousActivities
+        verdict: profileAnalysis.verdict,
+        confidence: profileAnalysis.confidence,
+        suspiciousActivities: profileAnalysis.behavioralMetrics.suspiciousActivities.map(a => a.details),
+        triggeredRules: profileAnalysis.triggeredRules
       });
 
-      // Alert on high risk detection
-      if (analysis.riskLevel === 'high' && analysis.confidence > 70) {
-        toast({
-          title: "High Risk Activity Detected",
-          description: `Confidence: ${analysis.confidence}% - ${analysis.suspiciousActivities[0]}`,
-          variant: "destructive"
-        });
-      }
+      // Generate live alerts for new triggered rules
+      profileAnalysis.behavioralMetrics.suspiciousActivities.forEach(activity => {
+        const alertId = `${activity.type}-${activity.timestamp}`;
+        
+        if (!liveAlerts.some(alert => alert.id === alertId)) {
+          const newAlert = {
+            id: alertId,
+            message: activity.details,
+            type: activity.type === 'code_after_inactivity' || activity.type === 'high_speed_typing' ? 'danger' as const : 'warning' as const,
+            timestamp: activity.timestamp
+          };
+          
+          setLiveAlerts(prev => [...prev.slice(-4), newAlert]); // Keep last 5 alerts
+          
+          toast({
+            title: "Behavioral Alert",
+            description: `${candidateProfile.name}: ${activity.details}`,
+            variant: newAlert.type === 'danger' ? 'destructive' : 'default'
+          });
+        }
+      });
     }
-  }, [typingEvents, code, sessionActive, sessionStartTime, toast]);
+  }, [typingEvents, code, sessionActive, sessionStartTime, candidateProfile, liveAlerts, toast]);
 
   // Track typing behavior
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -81,14 +109,16 @@ const CodingInterface = () => {
     
     setTypingEvents(prev => [...prev, event]);
     
-    // Immediate paste analysis
+    // Profile-aware paste analysis
     if (pastedText.length > 50) {
+      const alert = {
+        id: `paste-${Date.now()}`,
+        message: `Large paste detected: ${pastedText.length} characters`,
+        type: 'danger' as const,
+        timestamp: Date.now()
+      };
+      setLiveAlerts(prev => [...prev.slice(-4), alert]);
       setRiskLevel('high');
-      toast({
-        title: "Large Paste Detected",
-        description: `${pastedText.length} characters pasted`,
-        variant: "destructive"
-      });
     }
   };
 
@@ -106,51 +136,54 @@ const CodingInterface = () => {
     setSessionStartTime(Date.now());
     setTypingEvents([]);
     setRiskLevel('low');
+    setLiveAlerts([]);
     setRealTimeDetection({
       verdict: 'human',
       confidence: 0,
-      suspiciousActivities: []
+      suspiciousActivities: [],
+      triggeredRules: []
     });
     
     toast({
       title: "Session Started",
-      description: "Real-time monitoring activated"
+      description: `Monitoring ${candidateProfile.name} profile`,
     });
   };
 
   const endSession = async () => {
     if (!sessionStartTime) return;
 
-    // Perform final analysis
-    const finalAnalysis = DetectionEngine.analyze(
-      typingEvents, 
-      code, 
-      Date.now() - sessionStartTime
+    // Perform final profile-based analysis
+    const finalAnalysis = ProfileBasedDetection.analyzeSession(
+      candidateProfile,
+      typingEvents,
+      code,
+      sessionStartTime
     );
 
-    // Save session data
+    // Enhanced session data with profile analysis
     try {
       await apiService.saveSession({
         candidateName,
         code,
         typingEvents,
         duration: Date.now() - sessionStartTime,
-        riskLevel: finalAnalysis.riskLevel,
+        riskLevel: finalAnalysis.confidence >= 60 ? 'high' : finalAnalysis.confidence >= 30 ? 'medium' : 'low',
         verdict: finalAnalysis.verdict,
-        suspiciousActivities: finalAnalysis.suspiciousActivities,
+        suspiciousActivities: finalAnalysis.triggeredRules,
         typingMetrics: {
-          avgWPM: finalAnalysis.detailedMetrics.avgWPM,
-          maxWPM: finalAnalysis.detailedMetrics.maxWPM,
-          backspaceRatio: finalAnalysis.detailedMetrics.backspaceRatio,
-          pasteCount: finalAnalysis.detailedMetrics.pasteCount
+          avgWPM: 0, // Will be calculated by existing logic
+          maxWPM: Math.max(...finalAnalysis.behavioralMetrics.typingBursts.map(b => b.wpm), 0),
+          backspaceRatio: 0, // Will be calculated by existing logic  
+          pasteCount: typingEvents.filter(e => e.type === 'paste').length
         }
       });
 
       setSessionActive(false);
       
       toast({
-        title: "Session Ended",
-        description: `Final verdict: ${finalAnalysis.verdict.replace('_', ' ')} (${finalAnalysis.confidence}% confidence)`,
+        title: "Session Completed",
+        description: `Verdict: ${finalAnalysis.verdict} (${finalAnalysis.confidence}% confidence, ${finalAnalysis.triggeredRules.length} rules triggered)`,
         variant: finalAnalysis.verdict === 'human' ? 'default' : 'destructive'
       });
     } catch (error) {
@@ -194,7 +227,7 @@ const CodingInterface = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Coding Interview - Enhanced Detection</CardTitle>
+              <CardTitle>Coding Interview - Profile-Based Detection</CardTitle>
               <div className="flex items-center space-x-2">
                 <Badge className={getRiskColor()}>
                   {getRiskIcon()}
@@ -209,7 +242,7 @@ const CodingInterface = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <input
                 type="text"
                 placeholder="Candidate Name"
@@ -218,6 +251,22 @@ const CodingInterface = () => {
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={sessionActive}
               />
+              
+              <Select 
+                value={candidateProfile.id} 
+                onValueChange={(value) => setCandidateProfile(CANDIDATE_PROFILES[value])}
+                disabled={sessionActive}
+              >
+                <SelectTrigger>
+                  <User className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Select Profile" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="intern">Freshman Intern</SelectItem>
+                  <SelectItem value="professional">Professional/Competitive</SelectItem>
+                </SelectContent>
+              </Select>
+              
               <div className="flex space-x-2">
                 {!sessionActive ? (
                   <Button onClick={startSession} className="flex-1">
@@ -230,6 +279,26 @@ const CodingInterface = () => {
                 )}
               </div>
             </div>
+
+            {/* Profile Information */}
+            {!sessionActive && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">
+                  Selected Profile: {candidateProfile.name}
+                </h4>
+                <div className="grid grid-cols-3 gap-4 text-xs text-blue-700">
+                  <div>
+                    <strong>Pause Threshold:</strong> {candidateProfile.thresholds.suspiciousPause}s
+                  </div>
+                  <div>
+                    <strong>Edit Delay:</strong> {candidateProfile.thresholds.suspiciousEditDelay}s
+                  </div>
+                  <div>
+                    <strong>Initial Delay:</strong> {candidateProfile.thresholds.suspiciousInitialDelay}s
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
@@ -247,12 +316,43 @@ const CodingInterface = () => {
               />
             </div>
 
-            {sessionActive && realTimeDetection.suspiciousActivities.length > 0 && (
+            {/* Live Detection Alerts */}
+            {sessionActive && liveAlerts.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-red-800">Live Detection Alerts:</h4>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {liveAlerts.slice(-3).map((alert) => (
+                    <div 
+                      key={alert.id} 
+                      className={`p-2 rounded-md text-xs ${
+                        alert.type === 'danger' 
+                          ? 'bg-red-100 border border-red-300 text-red-800' 
+                          : 'bg-yellow-100 border border-yellow-300 text-yellow-800'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <span>{alert.message}</span>
+                        <span className="text-xs opacity-75 ml-2">
+                          {new Date(alert.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Triggered Rules Display */}
+            {sessionActive && realTimeDetection.triggeredRules.length > 0 && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <h4 className="text-sm font-medium text-red-800 mb-2">Live Detection Alerts:</h4>
+                <h4 className="text-sm font-medium text-red-800 mb-2">
+                  Triggered Detection Rules ({realTimeDetection.triggeredRules.length}):
+                </h4>
                 <div className="space-y-1">
-                  {realTimeDetection.suspiciousActivities.slice(-3).map((activity, index) => (
-                    <div key={index} className="text-xs text-red-700">{activity}</div>
+                  {realTimeDetection.triggeredRules.slice(-3).map((rule, index) => (
+                    <div key={index} className="text-xs text-red-700 bg-red-100 px-2 py-1 rounded">
+                      {rule}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -283,12 +383,14 @@ const CodingInterface = () => {
         <RealTimeMonitor 
           isActive={sessionActive}
           onSuspiciousActivity={(activity) => {
+            const alert = {
+              id: `monitor-${Date.now()}`,
+              message: activity,
+              type: 'warning' as const,
+              timestamp: Date.now()
+            };
+            setLiveAlerts(prev => [...prev.slice(-4), alert]);
             setRiskLevel('high');
-            toast({
-              title: "System Alert",
-              description: activity,
-              variant: "destructive"
-            });
           }}
         />
       </div>

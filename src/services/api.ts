@@ -2,18 +2,26 @@
 export interface SessionData {
   id: string;
   candidateName: string;
+  candidateProfile?: string;
   code: string;
   typingEvents: TypingEvent[];
   duration: number;
   riskLevel: 'low' | 'medium' | 'high';
-  verdict: 'human' | 'likely_bot' | 'ai_assisted';
+  verdict: 'human' | 'suspicious' | 'likely_bot' | 'ai_assisted';
   suspiciousActivities: string[];
+  triggeredRules?: string[];
   timestamp: string;
   typingMetrics: {
     avgWPM: number;
     maxWPM: number;
     backspaceRatio: number;
     pasteCount: number;
+  };
+  behavioralMetrics?: {
+    initialDelay: number | null;
+    longPausesCount: number;
+    editDelaysCount: number;
+    typingBurstsCount: number;
   };
 }
 
@@ -35,12 +43,15 @@ class ApiService {
     this.sessions = StorageService.loadSessions();
   }
 
-  // Save session data with persistence
+  // Enhanced save session with profile data
   async saveSession(sessionData: Omit<SessionData, 'id' | 'timestamp'>): Promise<SessionData> {
     const session: SessionData = {
       ...sessionData,
       id: Math.random().toString(36).substr(2, 9),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // Ensure backwards compatibility with existing data
+      triggeredRules: sessionData.triggeredRules || sessionData.suspiciousActivities,
+      candidateProfile: sessionData.candidateProfile || 'intern'
     };
     
     this.sessions.push(session);
@@ -48,7 +59,7 @@ class ApiService {
     // Persist to localStorage
     StorageService.saveSessions(this.sessions);
     
-    console.log('Session saved:', session);
+    console.log('Enhanced session saved with profile data:', session);
     
     return session;
   }
@@ -182,12 +193,18 @@ class ApiService {
       totalSessions: sessions.length,
       summary: {
         human: sessions.filter(s => s.verdict === 'human').length,
+        suspicious: sessions.filter(s => s.verdict === 'suspicious').length,
         likelyBot: sessions.filter(s => s.verdict === 'likely_bot').length,
         aiAssisted: sessions.filter(s => s.verdict === 'ai_assisted').length,
       },
+      profileBreakdown: {
+        intern: sessions.filter(s => s.candidateProfile === 'intern').length,
+        professional: sessions.filter(s => s.candidateProfile === 'professional').length,
+      },
       sessions: sessions.map(session => ({
         ...session,
-        typingEvents: session.typingEvents.length // Only include count for export
+        typingEvents: session.typingEvents.length, // Only include count for export
+        triggeredRules: session.triggeredRules || session.suspiciousActivities
       }))
     };
 
@@ -196,7 +213,7 @@ class ApiService {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `cheating_detection_report_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `profile_based_detection_report_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
