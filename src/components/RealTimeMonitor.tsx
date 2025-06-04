@@ -2,53 +2,51 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Monitor, Cpu, Eye, AlertCircle } from 'lucide-react';
+import { Monitor, Eye, AlertCircle } from 'lucide-react';
 
 interface RealTimeMonitorProps {
   isActive: boolean;
+  tabSwitches: number;
   onSuspiciousActivity: (activity: string) => void;
 }
 
 const RealTimeMonitor: React.FC<RealTimeMonitorProps> = ({ 
   isActive, 
+  tabSwitches,
   onSuspiciousActivity 
 }) => {
-  const [cpuUsage, setCpuUsage] = useState(0);
   const [focusEvents, setFocusEvents] = useState(0);
-  const [tabSwitches, setTabSwitches] = useState(0);
-  const [suspiciousApps, setSuspiciousApps] = useState<string[]>([]);
+  const [windowInactive, setWindowInactive] = useState(false);
+  const [inactiveStartTime, setInactiveStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isActive) return;
 
-    // Simulate CPU monitoring
-    const cpuInterval = setInterval(() => {
-      const usage = Math.random() * 100;
-      setCpuUsage(usage);
-      
-      // Detect high CPU usage (potential AI tools running)
-      if (usage > 80) {
-        onSuspiciousActivity('High CPU usage detected - possible AI tools');
-      }
-    }, 2000);
-
-    // Monitor window focus/blur events
     const handleFocus = () => {
       setFocusEvents(prev => prev + 1);
+      setWindowInactive(false);
+      
+      // Check if window was inactive for more than 10 seconds
+      if (inactiveStartTime) {
+        const inactiveDuration = (Date.now() - inactiveStartTime) / 1000;
+        if (inactiveDuration > 10) {
+          onSuspiciousActivity(`Window inactive for ${inactiveDuration.toFixed(1)}s - possible tab switch`);
+        }
+        setInactiveStartTime(null);
+      }
     };
 
     const handleBlur = () => {
-      setTabSwitches(prev => prev + 1);
-      if (tabSwitches > 5) {
-        onSuspiciousActivity('Excessive tab switching detected');
-      }
+      setWindowInactive(true);
+      setInactiveStartTime(Date.now());
     };
 
-    // Monitor visibility changes
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setTabSwitches(prev => prev + 1);
+        setWindowInactive(true);
+        setInactiveStartTime(Date.now());
+      } else {
+        handleFocus();
       }
     };
 
@@ -56,33 +54,19 @@ const RealTimeMonitor: React.FC<RealTimeMonitorProps> = ({
     window.addEventListener('blur', handleBlur);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Simulate detection of suspicious applications
-    const appCheckInterval = setInterval(() => {
-      const suspiciousAppNames = ['ChatGPT', 'Copilot', 'Claude', 'Bard'];
-      const detectedApps = suspiciousAppNames.filter(() => Math.random() > 0.95);
-      
-      if (detectedApps.length > 0) {
-        setSuspiciousApps(prev => [...new Set([...prev, ...detectedApps])]);
-        onSuspiciousActivity(`AI tool detected: ${detectedApps.join(', ')}`);
-      }
-    }, 5000);
-
     return () => {
-      clearInterval(cpuInterval);
-      clearInterval(appCheckInterval);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isActive, tabSwitches, onSuspiciousActivity]);
+  }, [isActive, inactiveStartTime, onSuspiciousActivity]);
 
   // Reset when session becomes inactive
   useEffect(() => {
     if (!isActive) {
-      setCpuUsage(0);
       setFocusEvents(0);
-      setTabSwitches(0);
-      setSuspiciousApps([]);
+      setWindowInactive(false);
+      setInactiveStartTime(null);
     }
   }, [isActive]);
 
@@ -91,7 +75,7 @@ const RealTimeMonitor: React.FC<RealTimeMonitorProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Monitor className="h-5 w-5" />
-          <span>System Monitor</span>
+          <span>Live System Monitoring</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -103,18 +87,7 @@ const RealTimeMonitor: React.FC<RealTimeMonitorProps> = ({
         
         {isActive && (
           <>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Cpu className="h-4 w-4 text-orange-500" />
-                  <span className="text-sm font-medium">CPU Usage</span>
-                </div>
-                <span className="text-sm font-semibold">{Math.round(cpuUsage)}%</span>
-              </div>
-              <Progress value={cpuUsage} className="h-2" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div className="text-center p-3 bg-blue-50 rounded-lg">
                 <div className="flex items-center justify-center space-x-1 mb-1">
                   <Eye className="h-4 w-4 text-blue-500" />
@@ -129,28 +102,28 @@ const RealTimeMonitor: React.FC<RealTimeMonitorProps> = ({
                   <span className="text-sm font-medium">Tab Switches</span>
                 </div>
                 <div className="text-xl font-bold text-yellow-600">{tabSwitches}</div>
+                {tabSwitches >= 3 && (
+                  <Badge variant="destructive" className="text-xs mt-1">
+                    Excessive
+                  </Badge>
+                )}
               </div>
             </div>
 
-            {suspiciousApps.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-red-600 flex items-center space-x-1">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>Detected AI Tools</span>
-                </h4>
-                <div className="space-y-1">
-                  {suspiciousApps.map((app, index) => (
-                    <Badge key={index} variant="destructive" className="mr-1">
-                      {app}
-                    </Badge>
-                  ))}
+            {windowInactive && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <span className="text-sm font-medium text-red-800">
+                    Window Currently Inactive
+                  </span>
                 </div>
               </div>
             )}
 
             <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-              <strong>Note:</strong> In a real implementation, system monitoring would require 
-              desktop application permissions and would track actual running processes.
+              <strong>Note:</strong> Tracking window focus and tab switching behavior. 
+              Inactivity > 10s triggers suspicious activity flag.
             </div>
           </>
         )}

@@ -3,16 +3,15 @@ export interface CandidateProfile {
   id: 'intern' | 'professional';
   name: string;
   thresholds: {
-    normalPause: { min: number; max: number };
-    suspiciousPause: number;
-    normalEditDelay: { min: number; max: number };
-    suspiciousEditDelay: number;
     normalInitialDelay: { min: number; max: number };
     suspiciousInitialDelay: number;
-    maxSuspiciousPauses: number;
+    suspiciousIdlePause: number;
+    maxSuspiciousIdlePauses: number;
+    suspiciousEditDelay: number;
     maxSuspiciousEditDelays: number;
     suspiciousWPM: number;
-    inactivityThreshold: number;
+    largePasteChars: number;
+    inactivityBeforePaste: number;
   };
 }
 
@@ -21,52 +20,52 @@ export const CANDIDATE_PROFILES: Record<string, CandidateProfile> = {
     id: 'intern',
     name: 'Freshman Intern',
     thresholds: {
-      normalPause: { min: 10, max: 30 },
-      suspiciousPause: 40,
-      normalEditDelay: { min: 15, max: 45 },
-      suspiciousEditDelay: 60,
       normalInitialDelay: { min: 15, max: 60 },
       suspiciousInitialDelay: 75,
-      maxSuspiciousPauses: 2,
+      suspiciousIdlePause: 40,
+      maxSuspiciousIdlePauses: 2,
+      suspiciousEditDelay: 60,
       maxSuspiciousEditDelays: 1,
       suspiciousWPM: 90,
-      inactivityThreshold: 60
+      largePasteChars: 80,
+      inactivityBeforePaste: 30
     }
   },
   professional: {
     id: 'professional',
-    name: 'Professional/Competitive Coder',
+    name: 'Pro/Competitive Coder',
     thresholds: {
-      normalPause: { min: 5, max: 15 },
-      suspiciousPause: 25,
-      normalEditDelay: { min: 5, max: 20 },
-      suspiciousEditDelay: 30,
       normalInitialDelay: { min: 5, max: 30 },
       suspiciousInitialDelay: 45,
-      maxSuspiciousPauses: 2,
+      suspiciousIdlePause: 25,
+      maxSuspiciousIdlePauses: 2,
+      suspiciousEditDelay: 30,
       maxSuspiciousEditDelays: 1,
       suspiciousWPM: 90,
-      inactivityThreshold: 60
+      largePasteChars: 80,
+      inactivityBeforePaste: 30
     }
   }
 };
 
 export interface BehavioralMetrics {
   initialDelay: number | null;
-  longPauses: number[];
+  idlePauses: number[];
   editDelays: number[];
+  pasteEvents: Array<{
+    timestamp: number;
+    chars: number;
+    inactivityBefore: number;
+  }>;
   typingBursts: Array<{
     startTime: number;
     endTime: number;
     characterCount: number;
     wpm: number;
+    errorCount: number;
   }>;
-  suspiciousActivities: Array<{
-    type: string;
-    timestamp: number;
-    details: string;
-    ruleTriggered: string;
-  }>;
+  tabSwitches: number;
+  detectionFlags: string[];
 }
 
 export class ProfileBasedDetection {
@@ -76,9 +75,8 @@ export class ProfileBasedDetection {
     code: string,
     sessionStartTime: number
   ): {
-    verdict: 'human' | 'suspicious' | 'likely_bot' | 'ai_assisted';
-    confidence: number;
-    triggeredRules: string[];
+    verdict: 'Human' | 'Likely Bot' | 'AI Assisted';
+    detectionFlags: string[];
     behavioralMetrics: BehavioralMetrics;
   } {
     const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
@@ -86,44 +84,36 @@ export class ProfileBasedDetection {
     
     const metrics: BehavioralMetrics = {
       initialDelay: null,
-      longPauses: [],
+      idlePauses: [],
       editDelays: [],
+      pasteEvents: [],
       typingBursts: [],
-      suspiciousActivities: []
+      tabSwitches: 0,
+      detectionFlags: []
     };
-
-    const triggeredRules: string[] = [];
-    let suspicionScore = 0;
 
     // Calculate initial delay
     if (keydownEvents.length > 0) {
       metrics.initialDelay = (keydownEvents[0].timestamp - sessionStartTime) / 1000;
       
       if (metrics.initialDelay > profile.thresholds.suspiciousInitialDelay) {
-        const rule = `Initial delay exceeded (${metrics.initialDelay.toFixed(1)}s > ${profile.thresholds.suspiciousInitialDelay}s)`;
-        triggeredRules.push(rule);
-        metrics.suspiciousActivities.push({
-          type: 'initial_delay',
-          timestamp: keydownEvents[0].timestamp,
-          details: `Took ${metrics.initialDelay.toFixed(1)} seconds to start typing`,
-          ruleTriggered: rule
-        });
-        suspicionScore += 20;
+        metrics.detectionFlags.push(`Initial delay exceeded (${metrics.initialDelay.toFixed(1)}s > ${profile.thresholds.suspiciousInitialDelay}s)`);
       }
     }
 
-    // Analyze pauses and typing bursts
+    // Analyze idle pauses between typing
     if (keydownEvents.length > 1) {
       let currentBurstStart = keydownEvents[0].timestamp;
       let currentBurstChars = 0;
+      let currentBurstErrors = 0;
       
       for (let i = 1; i < keydownEvents.length; i++) {
         const pauseDuration = (keydownEvents[i].timestamp - keydownEvents[i-1].timestamp) / 1000;
         
-        if (pauseDuration > profile.thresholds.suspiciousPause) {
-          metrics.longPauses.push(pauseDuration);
+        if (pauseDuration > profile.thresholds.suspiciousIdlePause) {
+          metrics.idlePauses.push(pauseDuration);
           
-          // End current burst and start new one
+          // End current typing burst
           if (currentBurstChars > 0) {
             const burstDuration = (keydownEvents[i-1].timestamp - currentBurstStart) / 1000 / 60;
             const wpm = burstDuration > 0 ? (currentBurstChars / 5) / burstDuration : 0;
@@ -132,86 +122,77 @@ export class ProfileBasedDetection {
               startTime: currentBurstStart,
               endTime: keydownEvents[i-1].timestamp,
               characterCount: currentBurstChars,
-              wpm: Math.round(wpm)
+              wpm: Math.round(wpm),
+              errorCount: currentBurstErrors
             });
           }
           
           currentBurstStart = keydownEvents[i].timestamp;
           currentBurstChars = 0;
+          currentBurstErrors = 0;
         } else {
           currentBurstChars++;
+          if (keydownEvents[i].key === 'Backspace') {
+            currentBurstErrors++;
+          }
         }
       }
     }
 
-    // Check for too many long pauses
-    if (metrics.longPauses.length > profile.thresholds.maxSuspiciousPauses) {
-      const rule = `Excessive long pauses (${metrics.longPauses.length} > ${profile.thresholds.maxSuspiciousPauses})`;
-      triggeredRules.push(rule);
-      metrics.suspiciousActivities.push({
-        type: 'excessive_pauses',
-        timestamp: Date.now(),
-        details: `${metrics.longPauses.length} pauses exceeding ${profile.thresholds.suspiciousPause}s`,
-        ruleTriggered: rule
-      });
-      suspicionScore += 25;
+    // Check for excessive idle pauses
+    if (metrics.idlePauses.length > profile.thresholds.maxSuspiciousIdlePauses) {
+      metrics.detectionFlags.push(`Excessive idle pauses (${metrics.idlePauses.length} > ${profile.thresholds.maxSuspiciousIdlePauses})`);
     }
 
-    // Analyze typing speed patterns
-    metrics.typingBursts.forEach(burst => {
-      if (burst.wpm > profile.thresholds.suspiciousWPM) {
-        const rule = `Suspicious typing speed (${burst.wpm} WPM > ${profile.thresholds.suspiciousWPM} WPM)`;
-        if (!triggeredRules.includes(rule)) {
-          triggeredRules.push(rule);
-          metrics.suspiciousActivities.push({
-            type: 'high_speed_typing',
-            timestamp: burst.startTime,
-            details: `Typing burst at ${burst.wpm} WPM`,
-            ruleTriggered: rule
-          });
-          suspicionScore += 20;
-        }
-      }
-    });
-
-    // Check for large code blocks after inactivity
+    // Analyze paste events
     pasteEvents.forEach(pasteEvent => {
       const beforePause = keydownEvents.filter(e => e.timestamp < pasteEvent.timestamp);
+      let inactivityBefore = 0;
+      
       if (beforePause.length > 0) {
         const lastTyping = beforePause[beforePause.length - 1].timestamp;
-        const inactivityDuration = (pasteEvent.timestamp - lastTyping) / 1000;
-        
-        if (inactivityDuration > profile.thresholds.inactivityThreshold) {
-          const rule = `Large code block after ${inactivityDuration.toFixed(1)}s inactivity`;
-          triggeredRules.push(rule);
-          metrics.suspiciousActivities.push({
-            type: 'code_after_inactivity',
-            timestamp: pasteEvent.timestamp,
-            details: `Paste event after ${inactivityDuration.toFixed(1)}s of inactivity`,
-            ruleTriggered: rule
-          });
-          suspicionScore += 30;
-        }
+        inactivityBefore = (pasteEvent.timestamp - lastTyping) / 1000;
+      }
+      
+      const pasteSize = pasteEvent.textLength || 0;
+      
+      metrics.pasteEvents.push({
+        timestamp: pasteEvent.timestamp,
+        chars: pasteSize,
+        inactivityBefore
+      });
+
+      // Flag large paste after inactivity
+      if (pasteSize > profile.thresholds.largePasteChars && 
+          inactivityBefore > profile.thresholds.inactivityBeforePaste) {
+        metrics.detectionFlags.push(`Large paste (${pasteSize} chars) after ${inactivityBefore.toFixed(1)}s inactivity`);
       }
     });
 
-    // Determine verdict based on triggered rules and score
-    let verdict: 'human' | 'suspicious' | 'likely_bot' | 'ai_assisted';
+    // Analyze typing speed and errors
+    metrics.typingBursts.forEach(burst => {
+      if (burst.wpm > profile.thresholds.suspiciousWPM && burst.errorCount === 0) {
+        metrics.detectionFlags.push(`Suspicious typing: ${burst.wpm} WPM with 0 errors`);
+      }
+    });
+
+    // Determine verdict
+    let verdict: 'Human' | 'Likely Bot' | 'AI Assisted' = 'Human';
     
-    if (suspicionScore >= 60 || triggeredRules.length >= 3) {
-      verdict = 'ai_assisted';
-    } else if (suspicionScore >= 40 || triggeredRules.length >= 2) {
-      verdict = 'likely_bot';
-    } else if (suspicionScore >= 20 || triggeredRules.length >= 1) {
-      verdict = 'suspicious';
-    } else {
-      verdict = 'human';
+    const hasAIFlags = metrics.detectionFlags.some(flag => 
+      flag.includes('Large paste') || 
+      (flag.includes('WPM with 0 errors') && profile.id === 'intern')
+    );
+    
+    if (hasAIFlags) {
+      verdict = 'AI Assisted';
+    } else if (metrics.detectionFlags.length >= 2) {
+      verdict = 'Likely Bot';
     }
 
     return {
       verdict,
-      confidence: Math.min(suspicionScore, 100),
-      triggeredRules,
+      detectionFlags: metrics.detectionFlags,
       behavioralMetrics: metrics
     };
   }

@@ -11,20 +11,18 @@ import { useToast } from '@/hooks/use-toast';
 const AdminDashboard = () => {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<SessionData[]>([]);
-  const [filterRisk, setFilterRisk] = useState<string>('all');
   const [filterVerdict, setFilterVerdict] = useState<string>('all');
+  const [filterCandidateType, setFilterCandidateType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Load sessions on component mount
   useEffect(() => {
     loadSessions();
   }, []);
 
-  // Apply filters when sessions or filters change
   useEffect(() => {
     applyFilters();
-  }, [sessions, filterRisk, filterVerdict]);
+  }, [sessions, filterVerdict, filterCandidateType]);
 
   const loadSessions = async () => {
     setIsLoading(true);
@@ -49,12 +47,12 @@ const AdminDashboard = () => {
   const applyFilters = () => {
     let filtered = sessions;
     
-    if (filterRisk !== 'all') {
-      filtered = filtered.filter(session => session.riskLevel === filterRisk);
-    }
-    
     if (filterVerdict !== 'all') {
       filtered = filtered.filter(session => session.verdict === filterVerdict);
+    }
+    
+    if (filterCandidateType !== 'all') {
+      filtered = filtered.filter(session => session.candidateType === filterCandidateType);
     }
     
     setFilteredSessions(filtered);
@@ -76,29 +74,20 @@ const AdminDashboard = () => {
     }
   };
 
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'high': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const getVerdictColor = (verdict: string) => {
     switch (verdict) {
-      case 'human': return 'bg-green-100 text-green-800';
-      case 'likely_bot': return 'bg-yellow-100 text-yellow-800';
-      case 'ai_assisted': return 'bg-red-100 text-red-800';
+      case 'Human': return 'bg-green-100 text-green-800';
+      case 'Likely Bot': return 'bg-yellow-100 text-yellow-800';
+      case 'AI Assisted': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getVerdictIcon = (verdict: string) => {
     switch (verdict) {
-      case 'human': return <CheckCircle className="h-4 w-4" />;
-      case 'likely_bot': return <Clock className="h-4 w-4" />;
-      case 'ai_assisted': return <AlertTriangle className="h-4 w-4" />;
+      case 'Human': return <CheckCircle className="h-4 w-4" />;
+      case 'Likely Bot': return <Clock className="h-4 w-4" />;
+      case 'AI Assisted': return <AlertTriangle className="h-4 w-4" />;
       default: return <CheckCircle className="h-4 w-4" />;
     }
   };
@@ -110,9 +99,9 @@ const AdminDashboard = () => {
   };
 
   const totalSessions = sessions.length;
-  const highRiskCount = sessions.filter(s => s.riskLevel === 'high').length;
-  const aiAssistedCount = sessions.filter(s => s.verdict === 'ai_assisted').length;
-  const detectionRate = totalSessions > 0 ? Math.round((aiAssistedCount / totalSessions) * 100) : 0;
+  const humanCount = sessions.filter(s => s.verdict === 'Human').length;
+  const botCount = sessions.filter(s => s.verdict === 'Likely Bot').length;
+  const aiAssistedCount = sessions.filter(s => s.verdict === 'AI Assisted').length;
 
   return (
     <div className="space-y-6">
@@ -135,12 +124,12 @@ const AdminDashboard = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-red-100 rounded-full">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+              <div className="p-3 bg-green-100 rounded-full">
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">High Risk</p>
-                <p className="text-2xl font-bold">{highRiskCount}</p>
+                <p className="text-sm text-gray-600">Human</p>
+                <p className="text-2xl font-bold">{humanCount}</p>
               </div>
             </div>
           </CardContent>
@@ -153,8 +142,8 @@ const AdminDashboard = () => {
                 <Clock className="h-6 w-6 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">AI Assisted</p>
-                <p className="text-2xl font-bold">{aiAssistedCount}</p>
+                <p className="text-sm text-gray-600">Likely Bot</p>
+                <p className="text-2xl font-bold">{botCount}</p>
               </div>
             </div>
           </CardContent>
@@ -163,12 +152,12 @@ const AdminDashboard = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-green-100 rounded-full">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="p-3 bg-red-100 rounded-full">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Detection Rate</p>
-                <p className="text-2xl font-bold">{detectionRate}%</p>
+                <p className="text-sm text-gray-600">AI Assisted</p>
+                <p className="text-2xl font-bold">{aiAssistedCount}</p>
               </div>
             </div>
           </CardContent>
@@ -181,7 +170,7 @@ const AdminDashboard = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2">
               <Filter className="h-5 w-5" />
-              <span>Session Analysis Dashboard</span>
+              <span>Admin Dashboard</span>
             </CardTitle>
             <div className="flex space-x-2">
               <Button onClick={loadSessions} variant="outline" disabled={isLoading}>
@@ -198,27 +187,26 @@ const AdminDashboard = () => {
         <CardContent>
           {/* Filters */}
           <div className="flex space-x-4 mb-6">
-            <Select value={filterRisk} onValueChange={setFilterRisk}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by Risk Level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Risk Levels</SelectItem>
-                <SelectItem value="low">Low Risk</SelectItem>
-                <SelectItem value="medium">Medium Risk</SelectItem>
-                <SelectItem value="high">High Risk</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Select value={filterVerdict} onValueChange={setFilterVerdict}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by Verdict" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Verdicts</SelectItem>
-                <SelectItem value="human">Human</SelectItem>
-                <SelectItem value="likely_bot">Likely Bot</SelectItem>
-                <SelectItem value="ai_assisted">AI Assisted</SelectItem>
+                <SelectItem value="Human">Human</SelectItem>
+                <SelectItem value="Likely Bot">Likely Bot</SelectItem>
+                <SelectItem value="AI Assisted">AI Assisted</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filterCandidateType} onValueChange={setFilterCandidateType}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by Candidate Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
+                <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -239,14 +227,12 @@ const AdminDashboard = () => {
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3">
                         <h3 className="text-lg font-semibold">{session.candidateName}</h3>
-                        <Badge className={getRiskColor(session.riskLevel)}>
-                          {session.riskLevel} risk
-                        </Badge>
+                        <Badge className="text-xs">{session.candidateType}</Badge>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge className={getVerdictColor(session.verdict)}>
                           {getVerdictIcon(session.verdict)}
-                          <span className="ml-1 capitalize">{session.verdict.replace('_', ' ')}</span>
+                          <span className="ml-1">{session.verdict}</span>
                         </Badge>
                       </div>
                       <p className="text-sm text-gray-600">
@@ -257,25 +243,25 @@ const AdminDashboard = () => {
                       </p>
                     </div>
 
-                    {/* Typing Metrics */}
+                    {/* Typing Stats */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Typing Metrics</h4>
+                      <h4 className="font-medium text-gray-900">Typing Stats</h4>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <span className="text-gray-600">Avg WPM:</span>
-                          <span className="ml-2 font-semibold">{session.typingMetrics.avgWPM}</span>
+                          <span className="text-gray-600">Total WPM:</span>
+                          <span className="ml-2 font-semibold">{session.typingStats.totalWPM}</span>
                         </div>
                         <div>
-                          <span className="text-gray-600">Max WPM:</span>
-                          <span className="ml-2 font-semibold">{session.typingMetrics.maxWPM}</span>
+                          <span className="text-gray-600">Total Time:</span>
+                          <span className="ml-2 font-semibold">{session.typingStats.totalTime}m</span>
                         </div>
                         <div>
-                          <span className="text-gray-600">Error Rate:</span>
-                          <span className="ml-2 font-semibold">{(session.typingMetrics.backspaceRatio * 100).toFixed(1)}%</span>
+                          <span className="text-gray-600">Lines of Code:</span>
+                          <span className="ml-2 font-semibold">{session.typingStats.linesOfCode}</span>
                         </div>
                         <div>
-                          <span className="text-gray-600">Pastes:</span>
-                          <span className="ml-2 font-semibold">{session.typingMetrics.pasteCount}</span>
+                          <span className="text-gray-600">Typing Bursts:</span>
+                          <span className="ml-2 font-semibold">{session.typingStats.typingBursts}</span>
                         </div>
                       </div>
                     </div>
@@ -284,10 +270,6 @@ const AdminDashboard = () => {
                     <div className="space-y-3">
                       <h4 className="font-medium text-gray-900">Code Analysis</h4>
                       <div className="text-sm space-y-1">
-                        <div>
-                          <span className="text-gray-600">Lines of Code:</span>
-                          <span className="ml-2 font-semibold">{session.code.split('\n').length}</span>
-                        </div>
                         <div>
                           <span className="text-gray-600">Characters:</span>
                           <span className="ml-2 font-semibold">{session.code.length}</span>
@@ -299,16 +281,16 @@ const AdminDashboard = () => {
                       </div>
                     </div>
 
-                    {/* Suspicious Activities */}
+                    {/* Detection Flags */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Detection Results</h4>
-                      {session.suspiciousActivities.length === 0 ? (
+                      <h4 className="font-medium text-gray-900">Detection Flags ({session.detectionFlags.length})</h4>
+                      {session.detectionFlags.length === 0 ? (
                         <p className="text-sm text-green-600">No suspicious activities detected</p>
                       ) : (
                         <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {session.suspiciousActivities.map((activity, index) => (
+                          {session.detectionFlags.map((flag, index) => (
                             <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full">
-                              {activity}
+                              {flag}
                             </Badge>
                           ))}
                         </div>

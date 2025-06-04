@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,77 +10,21 @@ import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
 import RealTimeMonitor from '@/components/RealTimeMonitor';
 import { apiService, TypingEvent } from '@/services/api';
-import { DetectionEngine } from '@/services/detectionEngine';
 import { CANDIDATE_PROFILES, ProfileBasedDetection, CandidateProfile } from '@/services/profiles';
 
 const CodingInterface = () => {
   const [code, setCode] = useState('');
   const [candidateName, setCandidateName] = useState('');
-  const [candidateProfile, setCandidateProfile] = useState<CandidateProfile>(CANDIDATE_PROFILES.intern);
+  const [candidateType, setCandidateType] = useState<'Freshman Intern' | 'Pro/Competitive Coder'>('Freshman Intern');
   const [sessionActive, setSessionActive] = useState(false);
   const [typingEvents, setTypingEvents] = useState<TypingEvent[]>([]);
-  const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high'>('low');
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
-  const [realTimeDetection, setRealTimeDetection] = useState({
-    verdict: 'human' as 'human' | 'suspicious' | 'likely_bot' | 'ai_assisted',
-    confidence: 0,
-    suspiciousActivities: [] as string[],
-    triggeredRules: [] as string[]
-  });
-  const [liveAlerts, setLiveAlerts] = useState<Array<{
-    id: string;
-    message: string;
-    type: 'warning' | 'danger';
-    timestamp: number;
-  }>>([]);
+  const [liveDetectionFlags, setLiveDetectionFlags] = useState<string[]>([]);
+  const [tabSwitches, setTabSwitches] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
-  // Enhanced real-time analysis with profile-based detection
-  useEffect(() => {
-    if (sessionActive && typingEvents.length > 5 && sessionStartTime) {
-      const profileAnalysis = ProfileBasedDetection.analyzeSession(
-        candidateProfile,
-        typingEvents,
-        code,
-        sessionStartTime
-      );
-      
-      // Update risk level based on profile analysis
-      const newRiskLevel = profileAnalysis.confidence >= 60 ? 'high' : 
-                          profileAnalysis.confidence >= 30 ? 'medium' : 'low';
-      setRiskLevel(newRiskLevel);
-      
-      setRealTimeDetection({
-        verdict: profileAnalysis.verdict,
-        confidence: profileAnalysis.confidence,
-        suspiciousActivities: profileAnalysis.behavioralMetrics.suspiciousActivities.map(a => a.details),
-        triggeredRules: profileAnalysis.triggeredRules
-      });
-
-      // Generate live alerts for new triggered rules
-      profileAnalysis.behavioralMetrics.suspiciousActivities.forEach(activity => {
-        const alertId = `${activity.type}-${activity.timestamp}`;
-        
-        if (!liveAlerts.some(alert => alert.id === alertId)) {
-          const newAlert = {
-            id: alertId,
-            message: activity.details,
-            type: activity.type === 'code_after_inactivity' || activity.type === 'high_speed_typing' ? 'danger' as const : 'warning' as const,
-            timestamp: activity.timestamp
-          };
-          
-          setLiveAlerts(prev => [...prev.slice(-4), newAlert]); // Keep last 5 alerts
-          
-          toast({
-            title: "Behavioral Alert",
-            description: `${candidateProfile.name}: ${activity.details}`,
-            variant: newAlert.type === 'danger' ? 'destructive' : 'default'
-          });
-        }
-      });
-    }
-  }, [typingEvents, code, sessionActive, sessionStartTime, candidateProfile, liveAlerts, toast]);
+  const currentProfile = candidateType === 'Freshman Intern' ? CANDIDATE_PROFILES.intern : CANDIDATE_PROFILES.professional;
 
   // Track typing behavior
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -103,24 +48,45 @@ const CodingInterface = () => {
     const event: TypingEvent = {
       timestamp: Date.now(),
       type: 'paste',
-      textLength: code.length + pastedText.length,
+      textLength: pastedText.length,
       position: textareaRef.current?.selectionStart || 0
     };
     
     setTypingEvents(prev => [...prev, event]);
     
-    // Profile-aware paste analysis
-    if (pastedText.length > 50) {
-      const alert = {
-        id: `paste-${Date.now()}`,
-        message: `Large paste detected: ${pastedText.length} characters`,
-        type: 'danger' as const,
-        timestamp: Date.now()
-      };
-      setLiveAlerts(prev => [...prev.slice(-4), alert]);
-      setRiskLevel('high');
+    // Check for large paste
+    if (pastedText.length > currentProfile.thresholds.largePasteChars) {
+      const newFlag = `Large paste detected: ${pastedText.length} characters`;
+      setLiveDetectionFlags(prev => [...prev, newFlag]);
+      
+      toast({
+        title: "Suspicious Activity",
+        description: newFlag,
+        variant: "destructive"
+      });
     }
   };
+
+  // Track window focus/blur for tab switching
+  React.useEffect(() => {
+    if (!sessionActive) return;
+
+    const handleBlur = () => {
+      setTabSwitches(prev => prev + 1);
+      if (tabSwitches >= 3) {
+        const flag = "Excessive tab switching detected";
+        setLiveDetectionFlags(prev => [...prev, flag]);
+        toast({
+          title: "Suspicious Activity",
+          description: flag,
+          variant: "destructive"
+        });
+      }
+    };
+
+    window.addEventListener('blur', handleBlur);
+    return () => window.removeEventListener('blur', handleBlur);
+  }, [sessionActive, tabSwitches, toast]);
 
   const startSession = () => {
     if (!candidateName.trim()) {
@@ -135,47 +101,46 @@ const CodingInterface = () => {
     setSessionActive(true);
     setSessionStartTime(Date.now());
     setTypingEvents([]);
-    setRiskLevel('low');
-    setLiveAlerts([]);
-    setRealTimeDetection({
-      verdict: 'human',
-      confidence: 0,
-      suspiciousActivities: [],
-      triggeredRules: []
-    });
+    setLiveDetectionFlags([]);
+    setTabSwitches(0);
     
     toast({
       title: "Session Started",
-      description: `Monitoring ${candidateProfile.name} profile`,
+      description: `Monitoring ${candidateType} behavior`,
     });
   };
 
   const endSession = async () => {
     if (!sessionStartTime) return;
 
-    // Perform final profile-based analysis
+    // Perform final analysis
     const finalAnalysis = ProfileBasedDetection.analyzeSession(
-      candidateProfile,
+      currentProfile,
       typingEvents,
       code,
       sessionStartTime
     );
 
-    // Enhanced session data with profile analysis
+    // Calculate typing stats
+    const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
+    const totalTime = (Date.now() - sessionStartTime) / 1000 / 60; // in minutes
+    const totalWPM = totalTime > 0 ? Math.round((keydownEvents.length / 5) / totalTime) : 0;
+    const linesOfCode = code.split('\n').length;
+
     try {
       await apiService.saveSession({
         candidateName,
+        candidateType,
         code,
         typingEvents,
         duration: Date.now() - sessionStartTime,
-        riskLevel: finalAnalysis.confidence >= 60 ? 'high' : finalAnalysis.confidence >= 30 ? 'medium' : 'low',
         verdict: finalAnalysis.verdict,
-        suspiciousActivities: finalAnalysis.triggeredRules,
-        typingMetrics: {
-          avgWPM: 0, // Will be calculated by existing logic
-          maxWPM: Math.max(...finalAnalysis.behavioralMetrics.typingBursts.map(b => b.wpm), 0),
-          backspaceRatio: 0, // Will be calculated by existing logic  
-          pasteCount: typingEvents.filter(e => e.type === 'paste').length
+        detectionFlags: finalAnalysis.detectionFlags,
+        typingStats: {
+          totalWPM,
+          totalTime: Math.round(totalTime * 100) / 100,
+          linesOfCode,
+          typingBursts: finalAnalysis.behavioralMetrics.typingBursts.length
         }
       });
 
@@ -183,8 +148,8 @@ const CodingInterface = () => {
       
       toast({
         title: "Session Completed",
-        description: `Verdict: ${finalAnalysis.verdict} (${finalAnalysis.confidence}% confidence, ${finalAnalysis.triggeredRules.length} rules triggered)`,
-        variant: finalAnalysis.verdict === 'human' ? 'default' : 'destructive'
+        description: `Verdict: ${finalAnalysis.verdict} (${finalAnalysis.detectionFlags.length} flags)`,
+        variant: finalAnalysis.verdict === 'Human' ? 'default' : 'destructive'
       });
     } catch (error) {
       toast({
@@ -202,22 +167,16 @@ const CodingInterface = () => {
     });
   };
 
-  const getRiskColor = () => {
-    switch (riskLevel) {
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'high': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const getVerdictColor = () => {
+    if (liveDetectionFlags.length === 0) return 'bg-green-100 text-green-800';
+    if (liveDetectionFlags.length >= 2) return 'bg-red-100 text-red-800';
+    return 'bg-yellow-100 text-yellow-800';
   };
 
-  const getRiskIcon = () => {
-    switch (riskLevel) {
-      case 'low': return <CheckCircle className="h-4 w-4" />;
-      case 'medium': return <Clock className="h-4 w-4" />;
-      case 'high': return <AlertTriangle className="h-4 w-4" />;
-      default: return <CheckCircle className="h-4 w-4" />;
-    }
+  const getVerdictIcon = () => {
+    if (liveDetectionFlags.length === 0) return <CheckCircle className="h-4 w-4" />;
+    if (liveDetectionFlags.length >= 2) return <AlertTriangle className="h-4 w-4" />;
+    return <Clock className="h-4 w-4" />;
   };
 
   return (
@@ -227,15 +186,18 @@ const CodingInterface = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Coding Interview - Profile-Based Detection</CardTitle>
+              <CardTitle>Interview Platform</CardTitle>
               <div className="flex items-center space-x-2">
-                <Badge className={getRiskColor()}>
-                  {getRiskIcon()}
-                  <span className="ml-1 capitalize">{riskLevel} Risk</span>
+                <Badge className={getVerdictColor()}>
+                  {getVerdictIcon()}
+                  <span className="ml-1">
+                    {liveDetectionFlags.length === 0 ? 'Normal' : 
+                     liveDetectionFlags.length >= 2 ? 'High Risk' : 'Suspicious'}
+                  </span>
                 </Badge>
-                {sessionActive && realTimeDetection.confidence > 0 && (
+                {sessionActive && liveDetectionFlags.length > 0 && (
                   <Badge variant="outline">
-                    {realTimeDetection.confidence}% confidence
+                    {liveDetectionFlags.length} flags
                   </Badge>
                 )}
               </div>
@@ -253,17 +215,17 @@ const CodingInterface = () => {
               />
               
               <Select 
-                value={candidateProfile.id} 
-                onValueChange={(value) => setCandidateProfile(CANDIDATE_PROFILES[value])}
+                value={candidateType} 
+                onValueChange={(value: 'Freshman Intern' | 'Pro/Competitive Coder') => setCandidateType(value)}
                 disabled={sessionActive}
               >
                 <SelectTrigger>
                   <User className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Select Profile" />
+                  <SelectValue placeholder="Select Candidate Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="intern">Freshman Intern</SelectItem>
-                  <SelectItem value="professional">Professional/Competitive</SelectItem>
+                  <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
+                  <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -284,17 +246,17 @@ const CodingInterface = () => {
             {!sessionActive && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                 <h4 className="text-sm font-medium text-blue-800 mb-2">
-                  Selected Profile: {candidateProfile.name}
+                  Selected Profile: {candidateType}
                 </h4>
                 <div className="grid grid-cols-3 gap-4 text-xs text-blue-700">
                   <div>
-                    <strong>Pause Threshold:</strong> {candidateProfile.thresholds.suspiciousPause}s
+                    <strong>Initial Delay:</strong> &lt;{currentProfile.thresholds.suspiciousInitialDelay}s
                   </div>
                   <div>
-                    <strong>Edit Delay:</strong> {candidateProfile.thresholds.suspiciousEditDelay}s
+                    <strong>Idle Pause:</strong> &lt;{currentProfile.thresholds.suspiciousIdlePause}s
                   </div>
                   <div>
-                    <strong>Initial Delay:</strong> {candidateProfile.thresholds.suspiciousInitialDelay}s
+                    <strong>Edit Delay:</strong> &lt;{currentProfile.thresholds.suspiciousEditDelay}s
                   </div>
                 </div>
               </div>
@@ -316,43 +278,19 @@ const CodingInterface = () => {
               />
             </div>
 
-            {/* Live Detection Alerts */}
-            {sessionActive && liveAlerts.length > 0 && (
+            {/* Live Detection Flags */}
+            {sessionActive && liveDetectionFlags.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-red-800">Live Detection Alerts:</h4>
+                <h4 className="text-sm font-medium text-red-800">Live Detection Flags:</h4>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {liveAlerts.slice(-3).map((alert) => (
-                    <div 
-                      key={alert.id} 
-                      className={`p-2 rounded-md text-xs ${
-                        alert.type === 'danger' 
-                          ? 'bg-red-100 border border-red-300 text-red-800' 
-                          : 'bg-yellow-100 border border-yellow-300 text-yellow-800'
-                      }`}
+                  {liveDetectionFlags.slice(-5).map((flag, index) => (
+                    <Badge 
+                      key={index} 
+                      variant="destructive" 
+                      className="text-xs block w-full"
                     >
-                      <div className="flex justify-between items-start">
-                        <span>{alert.message}</span>
-                        <span className="text-xs opacity-75 ml-2">
-                          {new Date(alert.timestamp).toLocaleTimeString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Triggered Rules Display */}
-            {sessionActive && realTimeDetection.triggeredRules.length > 0 && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <h4 className="text-sm font-medium text-red-800 mb-2">
-                  Triggered Detection Rules ({realTimeDetection.triggeredRules.length}):
-                </h4>
-                <div className="space-y-1">
-                  {realTimeDetection.triggeredRules.slice(-3).map((rule, index) => (
-                    <div key={index} className="text-xs text-red-700 bg-red-100 px-2 py-1 rounded">
-                      {rule}
-                    </div>
+                      {flag}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -377,20 +315,22 @@ const CodingInterface = () => {
         <TypingAnalyzer 
           typingEvents={typingEvents}
           isActive={sessionActive}
-          onRiskLevelChange={setRiskLevel}
+          profile={currentProfile}
+          onSuspiciousActivity={(activity) => {
+            setLiveDetectionFlags(prev => [...prev, activity]);
+            toast({
+              title: "Suspicious Activity",
+              description: activity,
+              variant: "destructive"
+            });
+          }}
         />
         
         <RealTimeMonitor 
           isActive={sessionActive}
+          tabSwitches={tabSwitches}
           onSuspiciousActivity={(activity) => {
-            const alert = {
-              id: `monitor-${Date.now()}`,
-              message: activity,
-              type: 'warning' as const,
-              timestamp: Date.now()
-            };
-            setLiveAlerts(prev => [...prev.slice(-4), alert]);
-            setRiskLevel('high');
+            setLiveDetectionFlags(prev => [...prev, activity]);
           }}
         />
       </div>
