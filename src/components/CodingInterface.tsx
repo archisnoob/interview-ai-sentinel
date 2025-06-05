@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,19 +26,28 @@ const CodingInterface = () => {
 
   const currentProfile = candidateType === 'Freshman Intern' ? CANDIDATE_PROFILES.intern : CANDIDATE_PROFILES.professional;
 
-  // Track typing behavior
+  // Helper function to filter out modifier keys
+  const shouldLogKey = (key: string): boolean => {
+    const modifierKeys = ['Shift', 'Control', 'Alt', 'CapsLock', 'Tab', 'Meta'];
+    return !modifierKeys.includes(key);
+  };
+
+  // Track typing behavior with improved filtering
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!sessionActive) return;
     
-    const event: TypingEvent = {
-      timestamp: Date.now(),
-      type: 'keydown',
-      key: e.key,
-      textLength: code.length,
-      position: textareaRef.current?.selectionStart || 0
-    };
-    
-    setTypingEvents(prev => [...prev, event]);
+    // Only log keys that result in actual typing or content changes
+    if (shouldLogKey(e.key)) {
+      const event: TypingEvent = {
+        timestamp: Date.now(),
+        type: 'keydown',
+        key: e.key,
+        textLength: code.length,
+        position: textareaRef.current?.selectionStart || 0
+      };
+      
+      setTypingEvents(prev => [...prev, event]);
+    }
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -112,7 +122,7 @@ const CodingInterface = () => {
   const endSession = async () => {
     if (!sessionStartTime) return;
 
-    // Perform final analysis using new SessionVerdictEngine
+    // Perform final analysis using SessionVerdictEngine
     const finalAnalysis = SessionVerdictEngine.analyzeSession(
       currentProfile,
       typingEvents,
@@ -241,7 +251,7 @@ const CodingInterface = () => {
               </div>
             </div>
 
-            {/* Profile Information */}
+            {/* Profile Information with correct time units */}
             {!sessionActive && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                 <h4 className="text-sm font-medium text-blue-800 mb-2">
@@ -249,13 +259,13 @@ const CodingInterface = () => {
                 </h4>
                 <div className="grid grid-cols-3 gap-4 text-xs text-blue-700">
                   <div>
-                    <strong>Initial Delay:</strong> &lt;{currentProfile.thresholds.suspiciousInitialDelay}s
+                    <strong>Initial Delay:</strong> &lt;{Math.round(currentProfile.thresholds.suspiciousInitialDelay / 1000)}s
                   </div>
                   <div>
-                    <strong>Idle Pause:</strong> &lt;{currentProfile.thresholds.suspiciousIdlePause}s
+                    <strong>Idle Pause:</strong> &lt;{Math.round(currentProfile.thresholds.suspiciousIdlePause / 1000)}s
                   </div>
                   <div>
-                    <strong>Edit Delay:</strong> &lt;{currentProfile.thresholds.suspiciousEditDelay}s
+                    <strong>Edit Delay:</strong> &lt;{Math.round(currentProfile.thresholds.suspiciousEditDelay / 1000)}s
                   </div>
                 </div>
               </div>

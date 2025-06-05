@@ -33,10 +33,18 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
   const [pasteCount, setPasteCount] = useState(0);
   const [idlePauses, setIdlePauses] = useState(0);
 
+  // Helper function to filter out modifier keys
+  const shouldCountKey = (key?: string): boolean => {
+    if (!key) return false;
+    const modifierKeys = ['Shift', 'Control', 'Alt', 'CapsLock', 'Tab', 'Meta'];
+    return !modifierKeys.includes(key);
+  };
+
   useEffect(() => {
     if (typingEvents.length === 0) return;
 
-    const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
+    // Filter out modifier keys for keystroke counting
+    const keydownEvents = typingEvents.filter(e => e.type === 'keydown' && shouldCountKey(e.key));
     const backspaces = keydownEvents.filter(e => e.key === 'Backspace').length;
     const pastes = typingEvents.filter(e => e.type === 'paste').length;
     
@@ -44,9 +52,9 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
     setBackspaceCount(backspaces);
     setPasteCount(pastes);
 
-    // Calculate current WPM from recent typing
+    // Calculate current WPM from recent typing (excluding modifier keys)
     if (keydownEvents.length >= 2) {
-      const recent = keydownEvents.slice(-20); // Last 20 keystrokes
+      const recent = keydownEvents.slice(-20); // Last 20 actual keystrokes
       if (recent.length >= 2) {
         const timeSpan = (recent[recent.length - 1].timestamp - recent[0].timestamp) / 1000 / 60;
         const wpm = timeSpan > 0 ? Math.round((recent.length / 5) / timeSpan) : 0;
@@ -60,11 +68,11 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
       }
     }
 
-    // Count idle pauses
+    // Count idle pauses (only between actual keystrokes, not modifier keys)
     let pauseCount = 0;
     for (let i = 1; i < keydownEvents.length; i++) {
       const pauseDuration = (keydownEvents[i].timestamp - keydownEvents[i-1].timestamp) / 1000;
-      if (pauseDuration > profile.thresholds.suspiciousIdlePause) {
+      if (pauseDuration > profile.thresholds.suspiciousIdlePause / 1000) {
         pauseCount++;
       }
     }
