@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,10 @@ import { Play, Save, AlertTriangle, CheckCircle, Clock, User } from 'lucide-reac
 import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
 import RealTimeMonitor from '@/components/RealTimeMonitor';
+import RiskVerdictDisplay from '@/components/RiskVerdictDisplay';
 import { apiService, TypingEvent } from '@/services/api';
 import { CANDIDATE_PROFILES, SessionVerdictEngine, CandidateProfile } from '@/services/profiles';
+import { DetectionEngine } from '@/services/detectionEngine';
 
 const CodingInterface = () => {
   const [code, setCode] = useState('');
@@ -21,6 +22,7 @@ const CodingInterface = () => {
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [liveDetectionFlags, setLiveDetectionFlags] = useState<string[]>([]);
   const [tabSwitches, setTabSwitches] = useState(0);
+  const [finalDetectionResult, setFinalDetectionResult] = useState<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
@@ -112,6 +114,7 @@ const CodingInterface = () => {
     setTypingEvents([]);
     setLiveDetectionFlags([]);
     setTabSwitches(0);
+    setFinalDetectionResult(null);
     
     toast({
       title: "Session Started",
@@ -122,7 +125,14 @@ const CodingInterface = () => {
   const endSession = async () => {
     if (!sessionStartTime) return;
 
-    // Perform final analysis using SessionVerdictEngine
+    // Perform final analysis using both engines
+    const sessionDuration = Date.now() - sessionStartTime;
+    
+    // Use the improved DetectionEngine for analysis
+    const detectionResult = DetectionEngine.analyze(typingEvents, code, sessionDuration);
+    setFinalDetectionResult(detectionResult);
+
+    // Also use SessionVerdictEngine for comparison
     const finalAnalysis = SessionVerdictEngine.analyzeSession(
       currentProfile,
       typingEvents,
@@ -131,8 +141,8 @@ const CodingInterface = () => {
     );
 
     // Calculate typing stats
-    const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
-    const totalTime = (Date.now() - sessionStartTime) / 1000 / 60; // in minutes
+    const keydownEvents = typingEvents.filter(e => e.type === 'keydown' && shouldLogKey(e.key || ''));
+    const totalTime = sessionDuration / 1000 / 60; // in minutes
     const totalWPM = totalTime > 0 ? Math.round((keydownEvents.length / 5) / totalTime) : 0;
     const linesOfCode = code.split('\n').length;
 
@@ -142,14 +152,15 @@ const CodingInterface = () => {
         candidateType,
         code,
         typingEvents,
-        duration: Date.now() - sessionStartTime,
-        verdict: finalAnalysis.verdict,
-        detectionFlags: finalAnalysis.detectionFlags.map(flag => flag.message),
+        duration: sessionDuration,
+        verdict: detectionResult.verdict === 'human' ? 'Human' : 
+                detectionResult.verdict === 'likely_bot' ? 'Likely Bot' : 'AI Assisted',
+        detectionFlags: detectionResult.suspiciousActivities,
         typingStats: {
           totalWPM,
           totalTime: Math.round(totalTime * 100) / 100,
           linesOfCode,
-          typingBursts: finalAnalysis.behavioralMetrics.typingBursts.length
+          typingBursts: detectionResult.detailedMetrics.burstTypingEvents
         }
       });
 
@@ -157,8 +168,8 @@ const CodingInterface = () => {
       
       toast({
         title: "Session Completed",
-        description: `Verdict: ${finalAnalysis.verdict} (Severity: ${finalAnalysis.severityScore}, ${finalAnalysis.detectionFlags.length} flags)`,
-        variant: finalAnalysis.verdict === 'Human' ? 'default' : 'destructive'
+        description: `Verdict: ${detectionResult.verdict} (Confidence: ${detectionResult.confidence})`,
+        variant: detectionResult.verdict === 'human' ? 'default' : 'destructive'
       });
     } catch (error) {
       toast({
@@ -251,7 +262,7 @@ const CodingInterface = () => {
               </div>
             </div>
 
-            {/* Profile Information with correct time units */}
+            {/* Profile Information */}
             {!sessionActive && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                 <h4 className="text-sm font-medium text-blue-800 mb-2">
@@ -259,13 +270,13 @@ const CodingInterface = () => {
                 </h4>
                 <div className="grid grid-cols-3 gap-4 text-xs text-blue-700">
                   <div>
-                    <strong>Initial Delay:</strong> &lt;{Math.round(currentProfile.thresholds.suspiciousInitialDelay / 1000)}s
+                    <strong>Initial Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s
                   </div>
                   <div>
-                    <strong>Idle Pause:</strong> &lt;{Math.round(currentProfile.thresholds.suspiciousIdlePause / 1000)}s
+                    <strong>Idle Pause:</strong> &lt;{candidateType === 'Freshman Intern' ? '40' : '25'}s
                   </div>
                   <div>
-                    <strong>Edit Delay:</strong> &lt;{Math.round(currentProfile.thresholds.suspiciousEditDelay / 1000)}s
+                    <strong>Edit Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '60' : '30'}s
                   </div>
                 </div>
               </div>
@@ -317,6 +328,12 @@ const CodingInterface = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Risk Verdict Display */}
+        <RiskVerdictDisplay 
+          detectionResult={finalDetectionResult}
+          isVisible={!sessionActive && finalDetectionResult !== null}
+        />
       </div>
 
       {/* Monitoring Panel */}

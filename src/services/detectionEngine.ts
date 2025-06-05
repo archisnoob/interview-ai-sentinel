@@ -1,4 +1,3 @@
-
 import { TypingEvent } from './api';
 
 export interface DetectionResult {
@@ -31,54 +30,87 @@ export class DetectionEngine {
     const suspiciousActivities: string[] = [];
     let suspicionScore = 0;
 
+    console.log("=== Detection Engine Analysis ===");
+    console.log("Metrics:", metrics);
+
     // Speed analysis
     if (metrics.avgWPM > 120) {
-      suspiciousActivities.push(`Extremely fast average typing: ${metrics.avgWPM} WPM`);
+      const activity = `Extremely fast average typing: ${metrics.avgWPM} WPM`;
+      suspiciousActivities.push(activity);
       suspicionScore += 30;
+      console.log("Flag: High average WPM +30");
     }
     if (metrics.maxWPM > 200) {
-      suspiciousActivities.push(`Unrealistic peak typing speed: ${metrics.maxWPM} WPM`);
+      const activity = `Unrealistic peak typing speed: ${metrics.maxWPM} WPM`;
+      suspiciousActivities.push(activity);
       suspicionScore += 25;
+      console.log("Flag: Unrealistic peak WPM +25");
     }
 
     // Consistency analysis
     if (metrics.typingConsistency > 0.8 && metrics.avgWPM > 80) {
       suspiciousActivities.push('Robotic typing consistency detected');
       suspicionScore += 20;
+      console.log("Flag: Robotic consistency +20");
     }
 
     // Error rate analysis
     if (metrics.backspaceRatio < 0.02 && code.length > 100) {
-      suspiciousActivities.push(`Unnaturally low error rate: ${(metrics.backspaceRatio * 100).toFixed(1)}%`);
+      const activity = `Unnaturally low error rate: ${(metrics.backspaceRatio * 100).toFixed(1)}%`;
+      suspiciousActivities.push(activity);
       suspicionScore += 15;
+      console.log("Flag: Low error rate +15");
     }
 
     // Paste behavior
     if (metrics.pasteCount > 2) {
-      suspiciousActivities.push(`Multiple paste operations: ${metrics.pasteCount}`);
+      const activity = `Multiple paste operations: ${metrics.pasteCount}`;
+      suspiciousActivities.push(activity);
       suspicionScore += 10 * metrics.pasteCount;
+      console.log(`Flag: Multiple pastes +${10 * metrics.pasteCount}`);
     }
 
     // Burst typing detection
     if (metrics.burstTypingEvents > 3) {
       suspiciousActivities.push('Multiple burst typing patterns detected');
       suspicionScore += 15;
+      console.log("Flag: Burst typing +15");
     }
 
     // Code pattern analysis
     const codeAnalysis = this.analyzeCodePatterns(code);
     suspiciousActivities.push(...codeAnalysis.suspiciousPatterns);
     suspicionScore += codeAnalysis.suspicionScore;
+    if (codeAnalysis.suspicionScore > 0) {
+      console.log(`Flag: Code patterns +${codeAnalysis.suspicionScore}`);
+    }
 
-    // Determine risk level and verdict
-    const riskLevel = suspicionScore >= 50 ? 'high' : suspicionScore >= 25 ? 'medium' : 'low';
-    const verdict = suspicionScore >= 60 ? 'ai_assisted' : suspicionScore >= 30 ? 'likely_bot' : 'human';
+    console.log("Suspicion Score:", suspicionScore);
+    console.log("Suspicious Activities:", suspiciousActivities);
+
+    // Determine risk level and verdict with improved thresholds
+    let riskLevel: 'low' | 'medium' | 'high';
+    let verdict: 'human' | 'likely_bot' | 'ai_assisted';
+
+    if (suspicionScore >= 45) {
+      riskLevel = 'high';
+      verdict = 'ai_assisted';
+    } else if (suspicionScore >= 15) {
+      riskLevel = 'medium';
+      verdict = 'likely_bot';
+    } else {
+      riskLevel = 'low';
+      verdict = 'human';
+    }
+
+    console.log("Final Verdict:", verdict, "Risk Level:", riskLevel);
+    console.log("=== End Analysis ===");
 
     return {
       riskLevel,
       verdict,
       suspiciousActivities,
-      confidence: Math.min(suspicionScore, 100),
+      confidence: suspicionScore,
       detailedMetrics: metrics
     };
   }
