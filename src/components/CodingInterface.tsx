@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
 import RealTimeMonitor from '@/components/RealTimeMonitor';
 import { apiService, TypingEvent } from '@/services/api';
-import { CANDIDATE_PROFILES, ProfileBasedDetection, CandidateProfile } from '@/services/profiles';
+import { CANDIDATE_PROFILES, SessionVerdictEngine, CandidateProfile } from '@/services/profiles';
 
 const CodingInterface = () => {
   const [code, setCode] = useState('');
@@ -113,8 +112,8 @@ const CodingInterface = () => {
   const endSession = async () => {
     if (!sessionStartTime) return;
 
-    // Perform final analysis
-    const finalAnalysis = ProfileBasedDetection.analyzeSession(
+    // Perform final analysis using new SessionVerdictEngine
+    const finalAnalysis = SessionVerdictEngine.analyzeSession(
       currentProfile,
       typingEvents,
       code,
@@ -135,7 +134,7 @@ const CodingInterface = () => {
         typingEvents,
         duration: Date.now() - sessionStartTime,
         verdict: finalAnalysis.verdict,
-        detectionFlags: finalAnalysis.detectionFlags,
+        detectionFlags: finalAnalysis.detectionFlags.map(flag => flag.message),
         typingStats: {
           totalWPM,
           totalTime: Math.round(totalTime * 100) / 100,
@@ -148,7 +147,7 @@ const CodingInterface = () => {
       
       toast({
         title: "Session Completed",
-        description: `Verdict: ${finalAnalysis.verdict} (${finalAnalysis.detectionFlags.length} flags)`,
+        description: `Verdict: ${finalAnalysis.verdict} (Severity: ${finalAnalysis.severityScore}, ${finalAnalysis.detectionFlags.length} flags)`,
         variant: finalAnalysis.verdict === 'Human' ? 'default' : 'destructive'
       });
     } catch (error) {
