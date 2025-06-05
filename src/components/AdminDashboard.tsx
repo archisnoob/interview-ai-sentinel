@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,23 +6,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw } from 'lucide-react';
 import { apiService, SessionData } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-
 const AdminDashboard = () => {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<SessionData[]>([]);
   const [filterVerdict, setFilterVerdict] = useState<string>('all');
   const [filterCandidateType, setFilterCandidateType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     loadSessions();
   }, []);
-
   useEffect(() => {
     applyFilters();
   }, [sessions, filterVerdict, filterCandidateType]);
-
   const loadSessions = async () => {
     setIsLoading(true);
     try {
@@ -43,21 +40,16 @@ const AdminDashboard = () => {
       setIsLoading(false);
     }
   };
-
   const applyFilters = () => {
     let filtered = sessions;
-    
     if (filterVerdict !== 'all') {
       filtered = filtered.filter(session => session.verdict === filterVerdict);
     }
-    
     if (filterCandidateType !== 'all') {
       filtered = filtered.filter(session => session.candidateType === filterCandidateType);
     }
-    
     setFilteredSessions(filtered);
   };
-
   const exportData = () => {
     try {
       apiService.exportSessions(filteredSessions);
@@ -73,38 +65,40 @@ const AdminDashboard = () => {
       });
     }
   };
-
   const getVerdictColor = (verdict: string) => {
     switch (verdict) {
-      case 'Human': return 'bg-green-100 text-green-800';
-      case 'Likely Bot': return 'bg-yellow-100 text-yellow-800';
-      case 'AI Assisted': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Human':
+        return 'bg-green-100 text-green-800';
+      case 'Likely Bot':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'AI Assisted':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
-
   const getVerdictIcon = (verdict: string) => {
     switch (verdict) {
-      case 'Human': return <CheckCircle className="h-4 w-4" />;
-      case 'Likely Bot': return <Clock className="h-4 w-4" />;
-      case 'AI Assisted': return <AlertTriangle className="h-4 w-4" />;
-      default: return <CheckCircle className="h-4 w-4" />;
+      case 'Human':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'Likely Bot':
+        return <Clock className="h-4 w-4" />;
+      case 'AI Assisted':
+        return <AlertTriangle className="h-4 w-4" />;
+      default:
+        return <CheckCircle className="h-4 w-4" />;
     }
   };
-
   const formatDuration = (milliseconds: number) => {
     const minutes = Math.floor(milliseconds / 60000);
-    const seconds = Math.floor((milliseconds % 60000) / 1000);
+    const seconds = Math.floor(milliseconds % 60000 / 1000);
     return `${minutes}m ${seconds}s`;
   };
-
   const totalSessions = sessions.length;
   const humanCount = sessions.filter(s => s.verdict === 'Human').length;
   const botCount = sessions.filter(s => s.verdict === 'Likely Bot').length;
   const aiAssistedCount = sessions.filter(s => s.verdict === 'AI Assisted').length;
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -128,7 +122,7 @@ const AdminDashboard = () => {
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Human</p>
+                <p className="text-sm text-green-500">Human</p>
                 <p className="text-2xl font-bold">{humanCount}</p>
               </div>
             </div>
@@ -142,7 +136,7 @@ const AdminDashboard = () => {
                 <Clock className="h-6 w-6 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Likely Bot</p>
+                <p className="text-sm text-yellow-100">Likely Bot</p>
                 <p className="text-2xl font-bold">{botCount}</p>
               </div>
             </div>
@@ -156,7 +150,7 @@ const AdminDashboard = () => {
                 <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">AI Assisted</p>
+                <p className="text-sm text-red-500">AI Assisted</p>
                 <p className="text-2xl font-bold">{aiAssistedCount}</p>
               </div>
             </div>
@@ -170,7 +164,7 @@ const AdminDashboard = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2">
               <Filter className="h-5 w-5" />
-              <span>Admin Dashboard</span>
+              <span className="mx-[18px] my-0">Admin Dashboard</span>
             </CardTitle>
             <div className="flex space-x-2">
               <Button onClick={loadSessions} variant="outline" disabled={isLoading}>
@@ -213,14 +207,11 @@ const AdminDashboard = () => {
 
           {/* Sessions List */}
           <div className="space-y-4">
-            {filteredSessions.length === 0 && !isLoading && (
-              <div className="text-center py-8 text-gray-500">
+            {filteredSessions.length === 0 && !isLoading && <div className="text-center py-8 text-gray-500">
                 {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
-              </div>
-            )}
+              </div>}
 
-            {filteredSessions.map((session) => (
-              <Card key={session.id} className="border-l-4 border-l-gray-200">
+            {filteredSessions.map(session => <Card key={session.id} className="border-l-4 border-l-gray-200">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Basic Info */}
@@ -284,27 +275,18 @@ const AdminDashboard = () => {
                     {/* Detection Flags */}
                     <div className="space-y-3">
                       <h4 className="font-medium text-gray-900">Detection Flags ({session.detectionFlags.length})</h4>
-                      {session.detectionFlags.length === 0 ? (
-                        <p className="text-sm text-green-600">No suspicious activities detected</p>
-                      ) : (
-                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {session.detectionFlags.map((flag, index) => (
-                            <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full">
+                      {session.detectionFlags.length === 0 ? <p className="text-sm text-green-600">No suspicious activities detected</p> : <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {session.detectionFlags.map((flag, index) => <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full">
                               {flag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                            </Badge>)}
+                        </div>}
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default AdminDashboard;
