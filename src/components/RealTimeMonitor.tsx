@@ -123,7 +123,7 @@ const RealTimeMonitor: React.FC<RealTimeMonitorProps> = ({
 
             <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
               <strong>Note:</strong> Tracking window focus and tab switching behavior. 
-              Inactivity > 10s triggers suspicious activity flag.
+              Inactivity &gt; 10s triggers suspicious activity flag.
             </div>
           </>
         )}
