@@ -220,25 +220,25 @@ const CodingInterface = () => {
             </div>
 
             {/* Profile Information */}
-            {!sessionActive && <div className="p-3 border border-blue-200 rounded-md bg-indigo-950">
-                <h4 className="text-sm font-medium mb-2 text-zinc-100">
+            {!sessionActive && <div className="p-3 border border-blue-200 rounded-xl bg-slate-50">
+                <h4 className="text-sm font-medium mb-2 text-blue-500">
                   Selected Profile: {candidateType}
                 </h4>
                 <div className="grid grid-cols-3 gap-4 text-xs text-blue-700">
-                  <div className="bg-indigo-950">
-                    <strong className="bg-indigo-950">Initial Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s
+                  <div className="bg-slate-50">
+                    <strong className="bg-slate-50">Initial Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s
                   </div>
-                  <div className="bg-indigo-950">
+                  <div className="bg-slate-50">
                     <strong>Idle Pause:</strong> &lt;{candidateType === 'Freshman Intern' ? '40' : '25'}s
                   </div>
-                  <div className="bg-indigo-950">
+                  <div className="bg-slate-50">
                     <strong>Edit Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '60' : '30'}s
                   </div>
                 </div>
               </div>}
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 bg-gray-950">
+              <label className="text-sm font-medium text-gray-700 bg-slate-50">
                 Problem: Implement a function to reverse a string efficiently
               </label>
               <Textarea ref={textareaRef} placeholder="Write your code here..." value={code} onChange={e => setCode(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} className="min-h-96 font-mono text-sm" disabled={!sessionActive} />
