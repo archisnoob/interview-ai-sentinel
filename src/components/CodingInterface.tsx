@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Save, AlertTriangle, CheckCircle, Clock, User } from 'lucide-react';
+import { Play, Save, AlertTriangle, CheckCircle, Clock, User, Code } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
 import RealTimeMonitor from '@/components/RealTimeMonitor';
@@ -12,7 +12,6 @@ import RiskVerdictDisplay from '@/components/RiskVerdictDisplay';
 import { apiService, TypingEvent } from '@/services/api';
 import { CANDIDATE_PROFILES, SessionVerdictEngine, CandidateProfile } from '@/services/profiles';
 import { DetectionEngine } from '@/services/detectionEngine';
-import Code from '@/components/Code';
 
 const CodingInterface = () => {
   const [code, setCode] = useState('');
