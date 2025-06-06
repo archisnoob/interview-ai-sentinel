@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw } from 'lucide-react';
 import { apiService, SessionData } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
+
 const AdminDashboard = () => {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<SessionData[]>([]);
@@ -15,12 +16,15 @@ const AdminDashboard = () => {
   const {
     toast
   } = useToast();
+
   useEffect(() => {
     loadSessions();
   }, []);
+
   useEffect(() => {
     applyFilters();
   }, [sessions, filterVerdict, filterCandidateType]);
+
   const loadSessions = async () => {
     setIsLoading(true);
     try {
@@ -40,6 +44,7 @@ const AdminDashboard = () => {
       setIsLoading(false);
     }
   };
+
   const applyFilters = () => {
     let filtered = sessions;
     if (filterVerdict !== 'all') {
@@ -50,6 +55,7 @@ const AdminDashboard = () => {
     }
     setFilteredSessions(filtered);
   };
+
   const exportData = () => {
     try {
       apiService.exportSessions(filteredSessions);
@@ -65,6 +71,7 @@ const AdminDashboard = () => {
       });
     }
   };
+
   const getVerdictColor = (verdict: string) => {
     switch (verdict) {
       case 'Human':
@@ -77,6 +84,7 @@ const AdminDashboard = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
   const getVerdictIcon = (verdict: string) => {
     switch (verdict) {
       case 'Human':
@@ -89,204 +97,239 @@ const AdminDashboard = () => {
         return <CheckCircle className="h-4 w-4" />;
     }
   };
+
   const formatDuration = (milliseconds: number) => {
     const minutes = Math.floor(milliseconds / 60000);
     const seconds = Math.floor(milliseconds % 60000 / 1000);
     return `${minutes}m ${seconds}s`;
   };
+
   const totalSessions = sessions.length;
   const humanCount = sessions.filter(s => s.verdict === 'Human').length;
   const botCount = sessions.filter(s => s.verdict === 'Likely Bot').length;
   const aiAssistedCount = sessions.filter(s => s.verdict === 'AI Assisted').length;
-  return <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Users className="h-6 w-6 text-blue-600" />
+
+  return (
+    <div className="min-h-screen dashboard-gradient p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="stats-card-gradient border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 accent-gradient rounded-full shadow-md">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-white/80 dark:text-white/70 font-medium">Total Sessions</p>
+                  <p className="text-3xl font-bold text-white drop-shadow-sm">{totalSessions}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Sessions</p>
-                <p className="text-2xl font-bold">{totalSessions}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="stats-card-gradient border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-green-500/90 dark:bg-green-400/90 rounded-full shadow-md">
+                  <CheckCircle className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-white/80 dark:text-white/70 font-medium">Human</p>
+                  <p className="text-3xl font-bold text-white drop-shadow-sm">{humanCount}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="stats-card-gradient border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-orange-500/90 dark:bg-orange-400/90 rounded-full shadow-md">
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-white/80 dark:text-white/70 font-medium">Likely Bot</p>
+                  <p className="text-3xl font-bold text-white drop-shadow-sm">{botCount}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="stats-card-gradient border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-red-500/90 dark:bg-red-400/90 rounded-full shadow-md">
+                  <AlertTriangle className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-white/80 dark:text-white/70 font-medium">AI Assisted</p>
+                  <p className="text-3xl font-bold text-white drop-shadow-sm">{aiAssistedCount}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Dashboard */}
+        <Card className="session-card-gradient border-0 shadow-xl">
+          <CardHeader className="header-gradient">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2 text-white drop-shadow-sm">
+                <Filter className="h-5 w-5" />
+                <span>Admin Dashboard</span>
+              </CardTitle>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={loadSessions} 
+                  variant="outline" 
+                  disabled={isLoading}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 hover:border-white/50 backdrop-blur-sm transition-all duration-300"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button 
+                  onClick={exportData} 
+                  variant="outline" 
+                  disabled={filteredSessions.length === 0}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 hover:border-white/50 backdrop-blur-sm transition-all duration-300"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export ({filteredSessions.length})
+                </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
+          </CardHeader>
+          
           <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-green-100 rounded-full">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-green-500">Human</p>
-                <p className="text-2xl font-bold">{humanCount}</p>
-              </div>
+            {/* Filters */}
+            <div className="flex space-x-4 mb-6">
+              <Select value={filterVerdict} onValueChange={setFilterVerdict}>
+                <SelectTrigger className="w-48 bg-white/50 dark:bg-white/10 backdrop-blur-sm border-white/30 dark:border-white/20">
+                  <SelectValue placeholder="Filter by Verdict" />
+                </SelectTrigger>
+                <SelectContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+                  <SelectItem value="all">All Verdicts</SelectItem>
+                  <SelectItem value="Human">Human</SelectItem>
+                  <SelectItem value="Likely Bot">Likely Bot</SelectItem>
+                  <SelectItem value="AI Assisted">AI Assisted</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterCandidateType} onValueChange={setFilterCandidateType}>
+                <SelectTrigger className="w-48 bg-white/50 dark:bg-white/10 backdrop-blur-sm border-white/30 dark:border-white/20">
+                  <SelectValue placeholder="Filter by Candidate Type" />
+                </SelectTrigger>
+                <SelectContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
+                  <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-yellow-100">Likely Bot</p>
-                <p className="text-2xl font-bold">{botCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Sessions List */}
+            <div className="space-y-4">
+              {filteredSessions.length === 0 && !isLoading && (
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  <div className="bg-white/50 dark:bg-white/10 rounded-lg p-8 backdrop-blur-sm">
+                    {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
+                  </div>
+                </div>
+              )}
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-red-100 rounded-full">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-red-500">AI Assisted</p>
-                <p className="text-2xl font-bold">{aiAssistedCount}</p>
-              </div>
+              {filteredSessions.map((session) => (
+                <Card key={session.id} className="gradient-border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                      {/* Basic Info */}
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{session.candidateName}</h3>
+                          <Badge className="text-xs bg-blue-100/80 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700">
+                            {session.candidateType}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge className={getVerdictColor(session.verdict)}>
+                            {getVerdictIcon(session.verdict)}
+                            <span className="ml-1">{session.verdict}</span>
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          Started: {new Date(session.timestamp).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          Duration: {formatDuration(session.duration)}
+                        </p>
+                      </div>
+
+                      {/* Typing Stats */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-gray-900 dark:text-white">Typing Stats</h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
+                            <span className="text-gray-600 dark:text-gray-300 block text-xs">Total WPM:</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{session.typingStats?.totalWPM || 'N/A'}</span>
+                          </div>
+                          <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
+                            <span className="text-gray-600 dark:text-gray-300 block text-xs">Total Time:</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{session.typingStats?.totalTime || 'N/A'}m</span>
+                          </div>
+                          <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
+                            <span className="text-gray-600 dark:text-gray-300 block text-xs">Lines of Code:</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{session.typingStats?.linesOfCode || 'N/A'}</span>
+                          </div>
+                          <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
+                            <span className="text-gray-600 dark:text-gray-300 block text-xs">Typing Bursts:</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{session.typingStats?.typingBursts || 'N/A'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Code Analysis */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-gray-900 dark:text-white">Code Analysis</h4>
+                        <div className="text-sm space-y-2">
+                          <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
+                            <span className="text-gray-600 dark:text-gray-300 block text-xs">Characters:</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{session.code.length}</span>
+                          </div>
+                          <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
+                            <span className="text-gray-600 dark:text-gray-300 block text-xs">Typing Events:</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{session.typingEvents.length}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Detection Flags */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-gray-900 dark:text-white">Detection Flags ({session.detectionFlags.length})</h4>
+                        {session.detectionFlags.length === 0 ? (
+                          <div className="bg-green-50/80 dark:bg-green-900/30 rounded-md p-3">
+                            <p className="text-sm text-green-600 dark:text-green-400">No suspicious activities detected</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                            {session.detectionFlags.map((flag, index) => (
+                              <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full bg-red-100/80 dark:bg-red-900/50 text-red-800 dark:text-red-200">
+                                {flag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Main Dashboard */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
-              <Filter className="h-5 w-5" />
-              <span className="mx-[18px] my-0">Admin Dashboard</span>
-            </CardTitle>
-            <div className="flex space-x-2">
-              <Button onClick={loadSessions} variant="outline" disabled={isLoading}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              <Button onClick={exportData} variant="outline" disabled={filteredSessions.length === 0}>
-                <Download className="h-4 w-4 mr-2" />
-                Export ({filteredSessions.length})
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Filters */}
-          <div className="flex space-x-4 mb-6">
-            <Select value={filterVerdict} onValueChange={setFilterVerdict}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by Verdict" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Verdicts</SelectItem>
-                <SelectItem value="Human">Human</SelectItem>
-                <SelectItem value="Likely Bot">Likely Bot</SelectItem>
-                <SelectItem value="AI Assisted">AI Assisted</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filterCandidateType} onValueChange={setFilterCandidateType}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by Candidate Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
-                <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Sessions List */}
-          <div className="space-y-4">
-            {filteredSessions.length === 0 && !isLoading && <div className="text-center py-8 text-gray-500">
-                {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
-              </div>}
-
-            {filteredSessions.map(session => <Card key={session.id} className="border-l-4 border-l-gray-200">
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    {/* Basic Info */}
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3">
-                        <h3 className="text-lg font-semibold">{session.candidateName}</h3>
-                        <Badge className="text-xs">{session.candidateType}</Badge>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge className={getVerdictColor(session.verdict)}>
-                          {getVerdictIcon(session.verdict)}
-                          <span className="ml-1">{session.verdict}</span>
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Started: {new Date(session.timestamp).toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Duration: {formatDuration(session.duration)}
-                      </p>
-                    </div>
-
-                    {/* Typing Stats */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Typing Stats</h4>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <span className="text-gray-600">Total WPM:</span>
-                          <span className="ml-2 font-semibold">{session.typingStats.totalWPM}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Total Time:</span>
-                          <span className="ml-2 font-semibold">{session.typingStats.totalTime}m</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Lines of Code:</span>
-                          <span className="ml-2 font-semibold">{session.typingStats.linesOfCode}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Typing Bursts:</span>
-                          <span className="ml-2 font-semibold">{session.typingStats.typingBursts}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Code Analysis */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Code Analysis</h4>
-                      <div className="text-sm space-y-1">
-                        <div>
-                          <span className="text-gray-600">Characters:</span>
-                          <span className="ml-2 font-semibold">{session.code.length}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Typing Events:</span>
-                          <span className="ml-2 font-semibold">{session.typingEvents.length}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Detection Flags */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Detection Flags ({session.detectionFlags.length})</h4>
-                      {session.detectionFlags.length === 0 ? <p className="text-sm text-green-600">No suspicious activities detected</p> : <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {session.detectionFlags.map((flag, index) => <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full">
-                              {flag}
-                            </Badge>)}
-                        </div>}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>)}
-          </div>
-        </CardContent>
-      </Card>
-    </div>;
+    </div>
+  );
 };
+
 export default AdminDashboard;
