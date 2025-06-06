@@ -44,19 +44,17 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* Custom theme variables */
-    --bg-color: #ffffff;
-    --text-color: #000000;
-    --code-bg: #f8f9fa;
-    --code-border: #e9ecef;
-
-    /* Light Mode Gradient Variables */
-    --dashboard-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+    /* Light Mode AI Platform Gradients */
+    --app-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #ddd6fe 75%, #c4b5fd 100%);
+    --header-bg: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+    --card-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%);
     --stats-card-bg: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 50%, #c4b5fd 100%);
-    --session-card-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%);
-    --header-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
-    --border-gradient: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 50%, #94a3b8 100%);
+    --coding-card-bg: linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%);
     --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 50%, #1e3a8a 100%);
+    --border-gradient: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 50%, #94a3b8 100%);
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
   }
 
   .dark {
@@ -96,19 +94,17 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* Custom theme variables */
-    --bg-color: #121212;
-    --text-color: #f5f5f5;
-    --code-bg: #1e1e1e;
-    --code-border: #333333;
-
-    /* Dark Mode Gradient Variables */
-    --dashboard-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    /* Dark Mode AI Platform Gradients */
+    --app-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #312e81 75%, #3730a3 100%);
+    --header-bg: linear-gradient(135deg, #ea580c 0%, #dc2626 50%, #b91c1c 100%);
+    --card-bg: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
     --stats-card-bg: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #3730a3 100%);
-    --session-card-bg: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
-    --header-gradient: linear-gradient(135deg, #ea580c 0%, #dc2626 50%, #b91c1c 100%);
-    --border-gradient: linear-gradient(135deg, #374151 0%, #4b5563 50%, #6b7280 100%);
+    --coding-card-bg: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
     --accent-gradient: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
+    --border-gradient: linear-gradient(135deg, #374151 0%, #4b5563 50%, #6b7280 100%);
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
   }
 
   /* Global smooth transitions */
@@ -124,8 +120,9 @@
 
   body {
     @apply bg-background text-foreground;
-    background-color: var(--bg-color);
-    color: var(--text-color);
+    background: var(--app-bg);
+    color: var(--text-primary);
+    min-height: 100vh;
   }
 
   /* Dark mode specific styles */
@@ -138,35 +135,39 @@
   }
 }
 
-/* Custom gradient utility classes */
+/* Modern AI Platform Utility Classes */
 @layer utilities {
-  .dashboard-gradient {
-    background: var(--dashboard-bg);
+  .app-gradient {
+    background: var(--app-bg);
+  }
+  
+  .header-gradient {
+    background: var(--header-bg);
+  }
+  
+  .card-gradient {
+    background: var(--card-bg);
   }
   
   .stats-card-gradient {
     background: var(--stats-card-bg);
   }
   
-  .session-card-gradient {
-    background: var(--session-card-bg);
-  }
-  
-  .header-gradient {
-    background: var(--header-gradient);
-  }
-  
-  .border-gradient {
-    border-image: var(--border-gradient) 1;
+  .coding-card-gradient {
+    background: var(--coding-card-bg);
   }
   
   .accent-gradient {
     background: var(--accent-gradient);
   }
+  
+  .border-gradient {
+    border-image: var(--border-gradient) 1;
+  }
 
   .gradient-border {
     position: relative;
-    background: var(--session-card-bg);
+    background: var(--card-bg);
     border-radius: 0.5rem;
   }
 
@@ -181,18 +182,52 @@
     mask-composite: xor;
     -webkit-mask-composite: xor;
   }
+
+  .text-primary {
+    color: var(--text-primary);
+  }
+
+  .text-secondary {
+    color: var(--text-secondary);
+  }
+
+  .text-muted {
+    color: var(--text-muted);
+  }
+
+  /* Enhanced hover effects */
+  .enhanced-hover {
+    @apply transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl;
+  }
+
+  .glass-effect {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .glass-effect {
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Card and component improvements */
+.dark .border {
+  border-color: hsl(var(--border));
+}
+
+/* Enhanced button styles */
+.theme-button {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  @apply transition-all duration-300 hover:shadow-lg hover:scale-105;
 }
 
 /* Code editor dark mode styles */
 .dark .monaco-editor {
-  background-color: var(--code-bg) !important;
+  background-color: var(--card-bg) !important;
 }
 
 .dark .monaco-editor .margin {
-  background-color: var(--code-bg) !important;
-}
-
-/* Card and component dark mode improvements */
-.dark .border {
-  border-color: var(--code-border);
+  background-color: var(--card-bg) !important;
 }

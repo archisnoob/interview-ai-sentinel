@@ -12,6 +12,8 @@ import RiskVerdictDisplay from '@/components/RiskVerdictDisplay';
 import { apiService, TypingEvent } from '@/services/api';
 import { CANDIDATE_PROFILES, SessionVerdictEngine, CandidateProfile } from '@/services/profiles';
 import { DetectionEngine } from '@/services/detectionEngine';
+import Code from '@/components/Code';
+
 const CodingInterface = () => {
   const [code, setCode] = useState('');
   const [candidateName, setCandidateName] = useState('');
@@ -23,9 +25,7 @@ const CodingInterface = () => {
   const [tabSwitches, setTabSwitches] = useState(0);
   const [finalDetectionResult, setFinalDetectionResult] = useState<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const currentProfile = candidateType === 'Freshman Intern' ? CANDIDATE_PROFILES.intern : CANDIDATE_PROFILES.professional;
 
   // Helper function to filter out modifier keys
@@ -166,22 +166,26 @@ const CodingInterface = () => {
     });
   };
   const getVerdictColor = () => {
-    if (liveDetectionFlags.length === 0) return 'bg-green-100 text-green-800';
-    if (liveDetectionFlags.length >= 2) return 'bg-red-100 text-red-800';
-    return 'bg-yellow-100 text-yellow-800';
+    if (liveDetectionFlags.length === 0) return 'bg-green-100/80 dark:bg-green-900/50 text-green-800 dark:text-green-200';
+    if (liveDetectionFlags.length >= 2) return 'bg-red-100/80 dark:bg-red-900/50 text-red-800 dark:text-red-200';
+    return 'bg-yellow-100/80 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200';
   };
   const getVerdictIcon = () => {
     if (liveDetectionFlags.length === 0) return <CheckCircle className="h-4 w-4" />;
     if (liveDetectionFlags.length >= 2) return <AlertTriangle className="h-4 w-4" />;
     return <Clock className="h-4 w-4" />;
   };
-  return <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Coding Area */}
       <div className="lg:col-span-2 space-y-6">
-        <Card>
-          <CardHeader>
+        <Card className="coding-card-gradient border-0 shadow-xl enhanced-hover">
+          <CardHeader className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-400/20 dark:to-purple-400/20 backdrop-blur-sm">
             <div className="flex items-center justify-between">
-              <CardTitle>Interview Platform</CardTitle>
+              <CardTitle className="text-primary flex items-center space-x-2">
+                <Code className="h-5 w-5" />
+                <span>Interview Platform</span>
+              </CardTitle>
               <div className="flex items-center space-x-2">
                 <Badge className={getVerdictColor()}>
                   {getVerdictIcon()}
@@ -189,77 +193,105 @@ const CodingInterface = () => {
                     {liveDetectionFlags.length === 0 ? 'Normal' : liveDetectionFlags.length >= 2 ? 'High Risk' : 'Suspicious'}
                   </span>
                 </Badge>
-                {sessionActive && liveDetectionFlags.length > 0 && <Badge variant="outline">
+                {sessionActive && liveDetectionFlags.length > 0 && (
+                  <Badge variant="outline" className="bg-white/20 dark:bg-white/10 backdrop-blur-sm">
                     {liveDetectionFlags.length} flags
-                  </Badge>}
+                  </Badge>
+                )}
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input type="text" placeholder="Candidate Name" value={candidateName} onChange={e => setCandidateName(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" disabled={sessionActive} />
+              <input 
+                type="text" 
+                placeholder="Candidate Name" 
+                value={candidateName} 
+                onChange={e => setCandidateName(e.target.value)} 
+                className="px-3 py-2 border border-white/20 dark:border-white/10 rounded-md bg-white/50 dark:bg-white/10 backdrop-blur-sm text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" 
+                disabled={sessionActive} 
+              />
               
               <Select value={candidateType} onValueChange={(value: 'Freshman Intern' | 'Pro/Competitive Coder') => setCandidateType(value)} disabled={sessionActive}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/50 dark:bg-white/10 backdrop-blur-sm border-white/20 dark:border-white/10">
                   <User className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Select Candidate Type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
                   <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
                   <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
                 </SelectContent>
               </Select>
               
               <div className="flex space-x-2">
-                {!sessionActive ? <Button onClick={startSession} className="flex-1">
+                {!sessionActive ? (
+                  <Button onClick={startSession} className="flex-1 theme-button">
                     Start Session
-                  </Button> : <Button onClick={endSession} variant="destructive" className="flex-1">
+                  </Button>
+                ) : (
+                  <Button onClick={endSession} variant="destructive" className="flex-1">
                     End Session
-                  </Button>}
+                  </Button>
+                )}
               </div>
             </div>
 
             {/* Profile Information */}
-            {!sessionActive && <div className="p-3 border border-blue-200 rounded-xl bg-slate-50">
-                <h4 className="text-sm font-medium mb-2 text-blue-500">
+            {!sessionActive && (
+              <div className="p-3 border border-blue-200/50 dark:border-blue-700/50 rounded-xl bg-white/30 dark:bg-white/10 backdrop-blur-sm">
+                <h4 className="text-sm font-medium mb-2 text-blue-600 dark:text-blue-400">
                   Selected Profile: {candidateType}
                 </h4>
-                <div className="grid grid-cols-3 gap-4 text-xs text-blue-700">
-                  <div className="bg-slate-50">
-                    <strong className="bg-slate-50">Initial Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s
+                <div className="grid grid-cols-3 gap-4 text-xs text-blue-700 dark:text-blue-300">
+                  <div>
+                    <strong>Initial Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s
                   </div>
-                  <div className="bg-slate-50">
+                  <div>
                     <strong>Idle Pause:</strong> &lt;{candidateType === 'Freshman Intern' ? '40' : '25'}s
                   </div>
-                  <div className="bg-slate-50">
+                  <div>
                     <strong>Edit Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '60' : '30'}s
                   </div>
                 </div>
-              </div>}
+              </div>
+            )}
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 bg-slate-50">
+              <label className="text-sm font-medium text-primary">
                 Problem: Implement a function to reverse a string efficiently
               </label>
-              <Textarea ref={textareaRef} placeholder="Write your code here..." value={code} onChange={e => setCode(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} className="min-h-96 font-mono text-sm" disabled={!sessionActive} />
+              <Textarea 
+                ref={textareaRef}
+                placeholder="Write your code here..." 
+                value={code} 
+                onChange={e => setCode(e.target.value)} 
+                onKeyDown={handleKeyDown} 
+                onPaste={handlePaste} 
+                className="min-h-96 font-mono text-sm bg-white/50 dark:bg-white/10 backdrop-blur-sm border-white/20 dark:border-white/10 text-primary placeholder-text-muted" 
+                disabled={!sessionActive} 
+              />
             </div>
 
             {/* Live Detection Flags */}
-            {sessionActive && liveDetectionFlags.length > 0 && <div className="space-y-2">
-                <h4 className="text-sm font-medium text-red-800">Live Detection Flags:</h4>
+            {sessionActive && liveDetectionFlags.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-red-600 dark:text-red-400">Live Detection Flags:</h4>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {liveDetectionFlags.slice(-5).map((flag, index) => <Badge key={index} variant="destructive" className="text-xs block w-full">
+                  {liveDetectionFlags.slice(-5).map((flag, index) => (
+                    <Badge key={index} variant="destructive" className="text-xs block w-full bg-red-100/80 dark:bg-red-900/50">
                       {flag}
-                    </Badge>)}
+                    </Badge>
+                  ))}
                 </div>
-              </div>}
+              </div>
+            )}
             
             <div className="flex space-x-2">
-              <Button onClick={runCode} disabled={!sessionActive}>
+              <Button onClick={runCode} disabled={!sessionActive} className="theme-button">
                 <Play className="h-4 w-4 mr-2" />
                 Run Code
               </Button>
-              <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive}>
+              <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive} className="bg-white/20 dark:bg-white/10 backdrop-blur-sm border-white/20 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/20">
                 <Save className="h-4 w-4 mr-2" />
                 Save
               </Button>
@@ -268,24 +300,38 @@ const CodingInterface = () => {
         </Card>
 
         {/* Risk Verdict Display */}
-        <RiskVerdictDisplay detectionResult={finalDetectionResult} isVisible={!sessionActive && finalDetectionResult !== null} />
+        <RiskVerdictDisplay 
+          detectionResult={finalDetectionResult} 
+          isVisible={!sessionActive && finalDetectionResult !== null} 
+        />
       </div>
 
       {/* Monitoring Panel */}
       <div className="space-y-6">
-        <TypingAnalyzer typingEvents={typingEvents} isActive={sessionActive} profile={currentProfile} onSuspiciousActivity={activity => {
-        setLiveDetectionFlags(prev => [...prev, activity]);
-        toast({
-          title: "Suspicious Activity",
-          description: activity,
-          variant: "destructive"
-        });
-      }} />
+        <TypingAnalyzer 
+          typingEvents={typingEvents} 
+          isActive={sessionActive} 
+          profile={currentProfile} 
+          onSuspiciousActivity={activity => {
+            setLiveDetectionFlags(prev => [...prev, activity]);
+            toast({
+              title: "Suspicious Activity",
+              description: activity,
+              variant: "destructive"
+            });
+          }} 
+        />
         
-        <RealTimeMonitor isActive={sessionActive} tabSwitches={tabSwitches} onSuspiciousActivity={activity => {
-        setLiveDetectionFlags(prev => [...prev, activity]);
-      }} />
+        <RealTimeMonitor 
+          isActive={sessionActive} 
+          tabSwitches={tabSwitches} 
+          onSuspiciousActivity={activity => {
+            setLiveDetectionFlags(prev => [...prev, activity]);
+          }} 
+        />
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default CodingInterface;

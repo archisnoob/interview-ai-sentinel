@@ -9,18 +9,18 @@ import { Shield, Code, BarChart3 } from 'lucide-react';
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-colors">
+    <div className="min-h-screen app-gradient">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+      <div className="header-gradient shadow-lg border-b border-white/20">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-600 dark:bg-blue-500 rounded-lg transition-colors">
+              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg shadow-md">
                 <Shield className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-red-500 dark:text-red-400 transition-colors">AI Cheating Detection System</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-300 transition-colors">Advanced behavioral analysis for coding interviews</p>
+                <h1 className="text-2xl font-bold text-white drop-shadow-sm">AI Cheating Detection System</h1>
+                <p className="text-sm text-white/80">Advanced behavioral analysis for coding interviews</p>
               </div>
             </div>
             <ThemeToggle />
@@ -31,17 +31,17 @@ const Index = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="interview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700">
+          <TabsList className="grid w-full grid-cols-2 lg:w-96 card-gradient border border-white/20 dark:border-white/10 shadow-lg">
             <TabsTrigger 
               value="interview" 
-              className="flex items-center space-x-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/50 transition-colors"
+              className="flex items-center space-x-2 data-[state=active]:bg-white/20 dark:data-[state=active]:bg-white/10 data-[state=active]:text-white transition-all duration-300"
             >
               <Code className="h-4 w-4" />
               <span>Interview Platform</span>
             </TabsTrigger>
             <TabsTrigger 
               value="dashboard" 
-              className="flex items-center space-x-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/50 transition-colors"
+              className="flex items-center space-x-2 data-[state=active]:bg-white/20 dark:data-[state=active]:bg-white/10 data-[state=active]:text-white transition-all duration-300"
             >
               <BarChart3 className="h-4 w-4" />
               <span>Admin Dashboard</span>
