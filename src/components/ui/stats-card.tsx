@@ -17,10 +17,10 @@ interface StatsCardProps {
 }
 
 const variantStyles = {
-  default: 'accent-primary',
-  success: 'success',
-  warning: 'warning', 
-  error: 'error',
+  default: 'bg-accent',
+  success: 'bg-success',
+  warning: 'bg-warning', 
+  error: 'bg-error',
 };
 
 const StatsCard: React.FC<StatsCardProps> = ({
@@ -34,28 +34,33 @@ const StatsCard: React.FC<StatsCardProps> = ({
   return (
     <Card 
       className={cn(
-        "bg-secondary border-default enhanced-hover animate-fade-in",
+        "card-professional animate-fade-in-up",
         className
       )}
     >
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1">
             <p 
-              className="text-secondary text-sm font-medium"
+              className="text-muted text-sm font-medium"
               id={`stats-title-${title.replace(/\s+/g, '-').toLowerCase()}`}
             >
               {title}
             </p>
             <p 
-              className="text-primary text-3xl font-bold"
+              className="text-primary text-3xl font-bold tracking-tight"
               aria-describedby={`stats-title-${title.replace(/\s+/g, '-').toLowerCase()}`}
             >
               {value}
             </p>
             {trend && (
               <p className="text-muted text-xs">
-                <span className={trend.value >= 0 ? 'text-green-600' : 'text-red-600'}>
+                <span 
+                  className={cn(
+                    "font-medium",
+                    trend.value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  )}
+                >
                   {trend.value >= 0 ? '+' : ''}{trend.value}%
                 </span>
                 {' '}{trend.label}
@@ -64,7 +69,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
           </div>
           <div 
             className={cn(
-              'p-3 rounded-full shadow-md',
+              'p-3 rounded-xl shadow-sm',
               variantStyles[variant]
             )}
             aria-hidden="true"

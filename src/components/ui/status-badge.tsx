@@ -5,14 +5,14 @@ import { cn } from '@/lib/utils';
 import { CheckCircle, AlertTriangle, Clock, XCircle } from 'lucide-react';
 
 const statusBadgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2",
   {
     variants: {
       variant: {
-        success: "success-light border-transparent",
-        warning: "warning-light border-transparent", 
-        error: "error-light border-transparent",
-        neutral: "bg-secondary text-secondary-foreground border-border",
+        success: "bg-success-light text-success border-success/20",
+        warning: "bg-warning-light text-warning border-warning/20", 
+        error: "bg-error-light text-error border-error/20",
+        neutral: "bg-secondary text-secondary border-border",
       },
     },
     defaultVariants: {
