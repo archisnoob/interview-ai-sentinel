@@ -28,12 +28,17 @@ const AdminDashboard = () => {
     setIsLoading(true);
     try {
       const sessionData = await apiService.getSessions();
-      setSessions(sessionData);
+      // Ensure we always have an array
+      const validSessionData = Array.isArray(sessionData) ? sessionData : [];
+      setSessions(validSessionData);
       toast({
         title: "Data Loaded",
-        description: `Found ${sessionData.length} sessions`
+        description: `Found ${validSessionData.length} sessions`
       });
     } catch (error) {
+      console.error('Failed to load sessions:', error);
+      // Set to empty array on error to prevent undefined access
+      setSessions([]);
       toast({
         title: "Error",
         description: "Failed to load session data",
@@ -45,7 +50,10 @@ const AdminDashboard = () => {
   };
 
   const applyFilters = () => {
-    let filtered = sessions;
+    // Ensure sessions is always an array before filtering
+    const sessionsArray = Array.isArray(sessions) ? sessions : [];
+    let filtered = sessionsArray;
+    
     if (filterVerdict !== 'all') {
       filtered = filtered.filter(session => session.verdict === filterVerdict);
     }
@@ -61,12 +69,14 @@ const AdminDashboard = () => {
 
   const exportData = () => {
     try {
-      apiService.exportSessions(filteredSessions);
+      const sessionsToExport = Array.isArray(filteredSessions) ? filteredSessions : [];
+      apiService.exportSessions(sessionsToExport);
       toast({
         title: "Export Complete",
-        description: `Exported ${filteredSessions.length} sessions`
+        description: `Exported ${sessionsToExport.length} sessions`
       });
     } catch (error) {
+      console.error('Export failed:', error);
       toast({
         title: "Export Failed",
         description: "Could not export session data",
@@ -107,10 +117,14 @@ const AdminDashboard = () => {
     return `${minutes}m ${seconds}s`;
   };
 
-  const totalSessions = sessions.length;
-  const humanCount = sessions.filter(s => s.verdict === 'Human').length;
-  const botCount = sessions.filter(s => s.verdict === 'Likely Bot').length;
-  const aiAssistedCount = sessions.filter(s => s.verdict === 'AI Assisted').length;
+  // Ensure arrays are defined before accessing length
+  const sessionsArray = Array.isArray(sessions) ? sessions : [];
+  const filteredSessionsArray = Array.isArray(filteredSessions) ? filteredSessions : [];
+  
+  const totalSessions = sessionsArray.length;
+  const humanCount = sessionsArray.filter(s => s.verdict === 'Human').length;
+  const botCount = sessionsArray.filter(s => s.verdict === 'Likely Bot').length;
+  const aiAssistedCount = sessionsArray.filter(s => s.verdict === 'AI Assisted').length;
 
   return (
     <div className="min-h-screen space-y-6">
@@ -194,11 +208,11 @@ const AdminDashboard = () => {
               <Button 
                 onClick={exportData} 
                 variant="outline" 
-                disabled={filteredSessions.length === 0}
+                disabled={filteredSessionsArray.length === 0}
                 className="bg-white/20 hover:bg-white/30 text-white border-white/30 hover:border-white/50 backdrop-blur-sm transition-all duration-300"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Export ({filteredSessions.length})
+                Export ({filteredSessionsArray.length})
               </Button>
             </div>
           </div>
@@ -233,101 +247,108 @@ const AdminDashboard = () => {
 
           {/* Sessions List */}
           <div className="space-y-4">
-            {filteredSessions.length === 0 && !isLoading && (
+            {filteredSessionsArray.length === 0 && !isLoading && (
               <div className="text-center py-12">
                 <div className="card-professional p-8">
                   <p className="text-muted">
-                    {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
+                    {sessionsArray.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
                   </p>
                 </div>
               </div>
             )}
 
-            {filteredSessions.map((session) => (
-              <Card key={session.id} className="card-professional modern-shadow animate-fade-in-up">
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    {/* Basic Info */}
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3">
-                        <h3 className="text-lg font-semibold text-primary">{session.candidateName}</h3>
-                        <Badge className="text-xs bg-accent/10 text-accent border-accent/20">
-                          {session.candidateType}
-                        </Badge>
+            {filteredSessionsArray.map((session) => {
+              // Ensure session properties are safe to access
+              const detectionFlags = Array.isArray(session.detectionFlags) ? session.detectionFlags : [];
+              const typingEvents = Array.isArray(session.typingEvents) ? session.typingEvents : [];
+              const code = session.code || '';
+              
+              return (
+                <Card key={session.id} className="card-professional modern-shadow animate-fade-in-up">
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                      {/* Basic Info */}
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <h3 className="text-lg font-semibold text-primary">{session.candidateName}</h3>
+                          <Badge className="text-xs bg-accent/10 text-accent border-accent/20">
+                            {session.candidateType}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge className={getVerdictColor(session.verdict)}>
+                            {getVerdictIcon(session.verdict)}
+                            <span className="ml-1">{session.verdict}</span>
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted">
+                          Started: {new Date(session.timestamp).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-muted">
+                          Duration: {formatDuration(session.duration)}
+                        </p>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge className={getVerdictColor(session.verdict)}>
-                          {getVerdictIcon(session.verdict)}
-                          <span className="ml-1">{session.verdict}</span>
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted">
-                        Started: {new Date(session.timestamp).toLocaleString()}
-                      </p>
-                      <p className="text-sm text-muted">
-                        Duration: {formatDuration(session.duration)}
-                      </p>
-                    </div>
 
-                    {/* Typing Stats */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-card">Typing Stats</h4>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="bg-secondary/50 rounded-md p-2">
-                          <span className="text-muted block text-xs">Total WPM:</span>
-                          <span className="font-semibold text-card">{session.typingStats?.totalWPM || 'N/A'}</span>
-                        </div>
-                        <div className="bg-secondary/50 rounded-md p-2">
-                          <span className="text-muted block text-xs">Total Time:</span>
-                          <span className="font-semibold text-card">{session.typingStats?.totalTime || 'N/A'}m</span>
-                        </div>
-                        <div className="bg-secondary/50 rounded-md p-2">
-                          <span className="text-muted block text-xs">Lines of Code:</span>
-                          <span className="font-semibold text-card">{session.typingStats?.linesOfCode || 'N/A'}</span>
-                        </div>
-                        <div className="bg-secondary/50 rounded-md p-2">
-                          <span className="text-muted block text-xs">Typing Bursts:</span>
-                          <span className="font-semibold text-card">{session.typingStats?.typingBursts || 'N/A'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Code Analysis */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-card">Code Analysis</h4>
-                      <div className="text-sm space-y-2">
-                        <div className="bg-secondary/50 rounded-md p-2">
-                          <span className="text-muted block text-xs">Characters:</span>
-                          <span className="font-semibold text-card">{session.code.length}</span>
-                        </div>
-                        <div className="bg-secondary/50 rounded-md p-2">
-                          <span className="text-muted block text-xs">Typing Events:</span>
-                          <span className="font-semibold text-card">{session.typingEvents.length}</span>
+                      {/* Typing Stats */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-card">Typing Stats</h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="bg-secondary/50 rounded-md p-2">
+                            <span className="text-muted block text-xs">Total WPM:</span>
+                            <span className="font-semibold text-card">{session.typingStats?.totalWPM || 'N/A'}</span>
+                          </div>
+                          <div className="bg-secondary/50 rounded-md p-2">
+                            <span className="text-muted block text-xs">Total Time:</span>
+                            <span className="font-semibold text-card">{session.typingStats?.totalTime || 'N/A'}m</span>
+                          </div>
+                          <div className="bg-secondary/50 rounded-md p-2">
+                            <span className="text-muted block text-xs">Lines of Code:</span>
+                            <span className="font-semibold text-card">{session.typingStats?.linesOfCode || 'N/A'}</span>
+                          </div>
+                          <div className="bg-secondary/50 rounded-md p-2">
+                            <span className="text-muted block text-xs">Typing Bursts:</span>
+                            <span className="font-semibold text-card">{session.typingStats?.typingBursts || 'N/A'}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Detection Flags */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-card">Detection Flags ({session.detectionFlags.length})</h4>
-                      {session.detectionFlags.length === 0 ? (
-                        <div className="bg-success-light rounded-md p-3">
-                          <p className="text-sm text-success">No suspicious activities detected</p>
+                      {/* Code Analysis */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-card">Code Analysis</h4>
+                        <div className="text-sm space-y-2">
+                          <div className="bg-secondary/50 rounded-md p-2">
+                            <span className="text-muted block text-xs">Characters:</span>
+                            <span className="font-semibold text-card">{code.length}</span>
+                          </div>
+                          <div className="bg-secondary/50 rounded-md p-2">
+                            <span className="text-muted block text-xs">Typing Events:</span>
+                            <span className="font-semibold text-card">{typingEvents.length}</span>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {session.detectionFlags.map((flag, index) => (
-                            <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full bg-error-light text-error">
-                              {flag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                      </div>
+
+                      {/* Detection Flags */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-card">Detection Flags ({detectionFlags.length})</h4>
+                        {detectionFlags.length === 0 ? (
+                          <div className="bg-success-light rounded-md p-3">
+                            <p className="text-sm text-success">No suspicious activities detected</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                            {detectionFlags.map((flag, index) => (
+                              <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full bg-error-light text-error">
+                                {flag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
