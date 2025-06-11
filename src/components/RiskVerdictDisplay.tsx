@@ -25,13 +25,13 @@ const RiskVerdictDisplay: React.FC<RiskVerdictDisplayProps> = ({
   const getVerdictColor = (verdict: string) => {
     switch (verdict) {
       case 'human':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700';
+        return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800';
       case 'likely_bot':
-        return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-700';
+        return 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800';
       case 'ai_assisted':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700';
+        return 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
       default:
-        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
+        return 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
     }
   };
 
@@ -62,36 +62,42 @@ const RiskVerdictDisplay: React.FC<RiskVerdictDisplayProps> = ({
   };
 
   return (
-    <Card className="mt-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 transition-colors">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-gray-100">
-          <Shield className="h-5 w-5" />
-          <span>Detection Analysis Result</span>
+    <Card className="bg-card dark:bg-card border border-border shadow-lg rounded-2xl transition-all duration-200">
+      <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-t-2xl border-b border-border">
+        <CardTitle className="flex items-center space-x-3 text-foreground">
+          <div className="p-2 bg-indigo-600 rounded-xl">
+            <Shield className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-xl font-semibold">Detection Analysis Result</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Badge className={`${getVerdictColor(detectionResult.verdict)} flex items-center space-x-2 px-3 py-2 transition-colors`}>
+          <div className="flex items-center space-x-4">
+            <Badge className={`${getVerdictColor(detectionResult.verdict)} flex items-center space-x-2 px-4 py-2 rounded-xl border font-semibold transition-all duration-200`}>
               {getVerdictIcon(detectionResult.verdict)}
-              <span className="font-semibold">{getVerdictLabel(detectionResult.verdict)}</span>
+              <span>{getVerdictLabel(detectionResult.verdict)}</span>
             </Badge>
-            <div className="text-sm text-gray-600 dark:text-gray-300 transition-colors">
-              Confidence: <span className="font-medium">{detectionResult.confidence}</span>
+            <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Confidence: </span>
+              <span className="font-semibold text-foreground">{detectionResult.confidence}</span>
             </div>
           </div>
         </div>
 
         {detectionResult.suspiciousActivities.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">Suspicious Activities Detected:</h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">Suspicious Activities Detected:</h4>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
               {detectionResult.suspiciousActivities.map((activity, index) => (
                 <div 
                   key={index} 
-                  className="text-xs bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-gray-700 dark:text-gray-300 transition-colors"
+                  className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3"
                 >
-                  • {activity}
+                  <div className="flex items-center space-x-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    <span className="text-sm font-medium text-red-700 dark:text-red-300">• {activity}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -99,8 +105,13 @@ const RiskVerdictDisplay: React.FC<RiskVerdictDisplayProps> = ({
         )}
 
         {detectionResult.suspiciousActivities.length === 0 && (
-          <div className="text-sm text-green-600 dark:text-green-400 transition-colors">
-            No suspicious activities detected - appears to be normal human behavior.
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                No suspicious activities detected - appears to be normal human behavior.
+              </span>
+            </div>
           </div>
         )}
       </CardContent>

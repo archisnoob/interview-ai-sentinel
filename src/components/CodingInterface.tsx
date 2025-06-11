@@ -1,10 +1,11 @@
+
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Save, AlertTriangle, CheckCircle, Clock, User, Code } from 'lucide-react';
+import { Play, Save, AlertTriangle, CheckCircle, Clock, User, Code, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
 import RealTimeMonitor from '@/components/RealTimeMonitor';
@@ -49,6 +50,7 @@ const CodingInterface = () => {
       setTypingEvents(prev => [...prev, event]);
     }
   };
+  
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (!sessionActive) return;
     const pastedText = e.clipboardData.getData('text');
@@ -90,6 +92,7 @@ const CodingInterface = () => {
     window.addEventListener('blur', handleBlur);
     return () => window.removeEventListener('blur', handleBlur);
   }, [sessionActive, tabSwitches, toast]);
+  
   const startSession = () => {
     if (!candidateName.trim()) {
       toast({
@@ -110,6 +113,7 @@ const CodingInterface = () => {
       description: `Monitoring ${candidateType} behavior`
     });
   };
+  
   const endSession = async () => {
     if (!sessionStartTime) return;
 
@@ -158,65 +162,71 @@ const CodingInterface = () => {
       });
     }
   };
+  
   const runCode = () => {
     toast({
       title: "Code Execution",
       description: "In a real environment, this would execute the code safely"
     });
   };
+
   const getVerdictColor = () => {
-    if (liveDetectionFlags.length === 0) return 'bg-green-100/80 dark:bg-green-900/50 text-green-800 dark:text-green-200';
-    if (liveDetectionFlags.length >= 2) return 'bg-red-100/80 dark:bg-red-900/50 text-red-800 dark:text-red-200';
-    return 'bg-yellow-100/80 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200';
+    if (liveDetectionFlags.length === 0) return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800';
+    if (liveDetectionFlags.length >= 2) return 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
+    return 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800';
   };
+  
   const getVerdictIcon = () => {
     if (liveDetectionFlags.length === 0) return <CheckCircle className="h-4 w-4" />;
     if (liveDetectionFlags.length >= 2) return <AlertTriangle className="h-4 w-4" />;
     return <Clock className="h-4 w-4" />;
   };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Coding Area */}
       <div className="lg:col-span-2 space-y-6">
-        <Card className="coding-card-gradient border-0 shadow-xl enhanced-hover">
-          <CardHeader className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-400/20 dark:to-purple-400/20 backdrop-blur-sm">
+        <Card className="bg-card dark:bg-card border border-border shadow-lg rounded-2xl hover:shadow-xl transition-all duration-200">
+          <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-t-2xl border-b border-border">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-primary flex items-center space-x-2">
-                <Code className="h-5 w-5" />
-                <span>Interview Platform</span>
+              <CardTitle className="text-foreground flex items-center space-x-3">
+                <div className="p-2 bg-indigo-600 rounded-xl">
+                  <Code className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-xl font-semibold">Interview Platform</span>
               </CardTitle>
               <div className="flex items-center space-x-2">
-                <Badge className={getVerdictColor()}>
+                <Badge className={`${getVerdictColor()} px-3 py-1.5 rounded-xl border transition-all duration-200`}>
                   {getVerdictIcon()}
-                  <span className="ml-1">
-                    {liveDetectionFlags.length === 0 ? 'Normal' : liveDetectionFlags.length >= 2 ? 'High Risk' : 'Suspicious'}
+                  <span className="ml-2 font-medium">
+                    {liveDetectionFlags.length === 0 ? 'Safe' : liveDetectionFlags.length >= 2 ? 'High Risk' : 'Warning'}
                   </span>
                 </Badge>
                 {sessionActive && liveDetectionFlags.length > 0 && (
-                  <Badge variant="outline" className="bg-white/20 dark:bg-white/10 backdrop-blur-sm">
+                  <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 rounded-xl">
                     {liveDetectionFlags.length} flags
                   </Badge>
                 )}
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <input 
                 type="text" 
                 placeholder="Candidate Name" 
                 value={candidateName} 
                 onChange={e => setCandidateName(e.target.value)} 
-                className="px-3 py-2 border border-white/20 dark:border-white/10 rounded-md bg-white/50 dark:bg-white/10 backdrop-blur-sm text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" 
+                className="px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-foreground placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200" 
                 disabled={sessionActive} 
               />
               
               <Select value={candidateType} onValueChange={(value: 'Freshman Intern' | 'Pro/Competitive Coder') => setCandidateType(value)} disabled={sessionActive}>
-                <SelectTrigger className="bg-white/50 dark:bg-white/10 backdrop-blur-sm border-white/20 dark:border-white/10">
+                <SelectTrigger className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
                   <User className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Select Candidate Type" />
                 </SelectTrigger>
-                <SelectContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+                <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
                   <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
                   <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
                 </SelectContent>
@@ -224,11 +234,12 @@ const CodingInterface = () => {
               
               <div className="flex space-x-2">
                 {!sessionActive ? (
-                  <Button onClick={startSession} className="flex-1 theme-button">
+                  <Button onClick={startSession} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl transition-all duration-200 font-medium">
+                    <Shield className="h-4 w-4 mr-2" />
                     Start Session
                   </Button>
                 ) : (
-                  <Button onClick={endSession} variant="destructive" className="flex-1">
+                  <Button onClick={endSession} className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl transition-all duration-200 font-medium">
                     End Session
                   </Button>
                 )}
@@ -237,26 +248,26 @@ const CodingInterface = () => {
 
             {/* Profile Information */}
             {!sessionActive && (
-              <div className="p-3 border border-blue-200/50 dark:border-blue-700/50 rounded-xl bg-white/30 dark:bg-white/10 backdrop-blur-sm">
-                <h4 className="text-sm font-medium mb-2 text-blue-600 dark:text-blue-400">
+              <div className="p-4 border border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50 dark:bg-indigo-900/20">
+                <h4 className="text-sm font-semibold mb-3 text-indigo-700 dark:text-indigo-300">
                   Selected Profile: {candidateType}
                 </h4>
-                <div className="grid grid-cols-3 gap-4 text-xs text-blue-700 dark:text-blue-300">
-                  <div>
+                <div className="grid grid-cols-3 gap-4 text-xs text-indigo-600 dark:text-indigo-400">
+                  <div className="bg-white dark:bg-slate-800 p-2 rounded-lg">
                     <strong>Initial Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s
                   </div>
-                  <div>
+                  <div className="bg-white dark:bg-slate-800 p-2 rounded-lg">
                     <strong>Idle Pause:</strong> &lt;{candidateType === 'Freshman Intern' ? '40' : '25'}s
                   </div>
-                  <div>
+                  <div className="bg-white dark:bg-slate-800 p-2 rounded-lg">
                     <strong>Edit Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '60' : '30'}s
                   </div>
                 </div>
               </div>
             )}
             
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-primary">
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-foreground">
                 Problem: Implement a function to reverse a string efficiently
               </label>
               <Textarea 
@@ -266,31 +277,34 @@ const CodingInterface = () => {
                 onChange={e => setCode(e.target.value)} 
                 onKeyDown={handleKeyDown} 
                 onPaste={handlePaste} 
-                className="min-h-96 font-mono text-sm bg-white/50 dark:bg-white/10 backdrop-blur-sm border-white/20 dark:border-white/10 text-primary placeholder-text-muted" 
+                className="min-h-96 font-mono text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-foreground placeholder-slate-500 dark:placeholder-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200" 
                 disabled={!sessionActive} 
               />
             </div>
 
             {/* Live Detection Flags */}
             {sessionActive && liveDetectionFlags.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-red-600 dark:text-red-400">Live Detection Flags:</h4>
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-red-600 dark:text-red-400">Live Detection Flags:</h4>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {liveDetectionFlags.slice(-5).map((flag, index) => (
-                    <Badge key={index} variant="destructive" className="text-xs block w-full bg-red-100/80 dark:bg-red-900/50">
-                      {flag}
-                    </Badge>
+                    <div key={index} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
+                      <div className="flex items-center space-x-2">
+                        <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                        <span className="text-sm font-medium text-red-700 dark:text-red-300">{flag}</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
             
-            <div className="flex space-x-2">
-              <Button onClick={runCode} disabled={!sessionActive} className="theme-button">
+            <div className="flex space-x-3">
+              <Button onClick={runCode} disabled={!sessionActive} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition-all duration-200 font-medium">
                 <Play className="h-4 w-4 mr-2" />
                 Run Code
               </Button>
-              <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive} className="bg-white/20 dark:bg-white/10 backdrop-blur-sm border-white/20 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/20">
+              <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive} className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 px-4 py-2 rounded-xl transition-all duration-200 font-medium">
                 <Save className="h-4 w-4 mr-2" />
                 Save
               </Button>
