@@ -1,10 +1,11 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { Play, Save, AlertTriangle, CheckCircle, Clock, User, Code, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
@@ -170,178 +171,185 @@ const CodingInterface = () => {
     });
   };
 
-  const getVerdictColor = () => {
-    if (liveDetectionFlags.length === 0) return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800';
-    if (liveDetectionFlags.length >= 2) return 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
-    return 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800';
+  const getStatusVariant = () => {
+    if (liveDetectionFlags.length === 0) return 'default';
+    if (liveDetectionFlags.length >= 2) return 'destructive';
+    return 'secondary';
   };
-  
-  const getVerdictIcon = () => {
+
+  const getStatusIcon = () => {
     if (liveDetectionFlags.length === 0) return <CheckCircle className="h-4 w-4" />;
     if (liveDetectionFlags.length >= 2) return <AlertTriangle className="h-4 w-4" />;
     return <Clock className="h-4 w-4" />;
   };
 
+  const getStatusText = () => {
+    if (liveDetectionFlags.length === 0) return 'Safe';
+    if (liveDetectionFlags.length >= 2) return 'High Risk';
+    return 'Warning';
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Main Coding Area */}
-      <div className="lg:col-span-2 space-y-6">
-        <Card className="bg-card dark:bg-card border border-border shadow-lg rounded-2xl hover:shadow-xl transition-all duration-200">
-          <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-t-2xl border-b border-border">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-foreground flex items-center space-x-3">
-                <div className="p-2 bg-indigo-600 rounded-xl">
-                  <Code className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-xl font-semibold">Interview Platform</span>
-              </CardTitle>
-              <div className="flex items-center space-x-2">
-                <Badge className={`${getVerdictColor()} px-3 py-1.5 rounded-xl border transition-all duration-200`}>
-                  {getVerdictIcon()}
-                  <span className="ml-2 font-medium">
-                    {liveDetectionFlags.length === 0 ? 'Safe' : liveDetectionFlags.length >= 2 ? 'High Risk' : 'Warning'}
-                  </span>
-                </Badge>
-                {sessionActive && liveDetectionFlags.length > 0 && (
-                  <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 rounded-xl">
-                    {liveDetectionFlags.length} flags
+    <div className="max-w-screen-2xl mx-auto p-6 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Coding Area */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="shadow-lg">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-3">
+                  <div className="p-2 bg-primary rounded-lg">
+                    <Code className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <span>Interview Platform</span>
+                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <Badge variant={getStatusVariant()} className="gap-1">
+                    {getStatusIcon()}
+                    {getStatusText()}
                   </Badge>
-                )}
+                  {sessionActive && liveDetectionFlags.length > 0 && (
+                    <Badge variant="outline">
+                      {liveDetectionFlags.length} flags
+                    </Badge>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input 
-                type="text" 
-                placeholder="Candidate Name" 
-                value={candidateName} 
-                onChange={e => setCandidateName(e.target.value)} 
-                className="px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-foreground placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200" 
-                disabled={sessionActive} 
-              />
-              
-              <Select value={candidateType} onValueChange={(value: 'Freshman Intern' | 'Pro/Competitive Coder') => setCandidateType(value)} disabled={sessionActive}>
-                <SelectTrigger className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
-                  <User className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Select Candidate Type" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl">
-                  <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
-                  <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <div className="flex space-x-2">
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Session Controls */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input 
+                  type="text" 
+                  placeholder="Candidate Name" 
+                  value={candidateName} 
+                  onChange={e => setCandidateName(e.target.value)} 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" 
+                  disabled={sessionActive} 
+                />
+                
+                <Select value={candidateType} onValueChange={(value: 'Freshman Intern' | 'Pro/Competitive Coder') => setCandidateType(value)} disabled={sessionActive}>
+                  <SelectTrigger>
+                    <User className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Select Candidate Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
+                    <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
+                  </SelectContent>
+                </Select>
+                
                 {!sessionActive ? (
-                  <Button onClick={startSession} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl transition-all duration-200 font-medium">
-                    <Shield className="h-4 w-4 mr-2" />
+                  <Button onClick={startSession} className="gap-2">
+                    <Shield className="h-4 w-4" />
                     Start Session
                   </Button>
                 ) : (
-                  <Button onClick={endSession} className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl transition-all duration-200 font-medium">
+                  <Button onClick={endSession} variant="destructive" className="gap-2">
+                    <Shield className="h-4 w-4" />
                     End Session
                   </Button>
                 )}
               </div>
-            </div>
 
-            {/* Profile Information */}
-            {!sessionActive && (
-              <div className="p-4 border border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50 dark:bg-indigo-900/20">
-                <h4 className="text-sm font-semibold mb-3 text-indigo-700 dark:text-indigo-300">
-                  Selected Profile: {candidateType}
-                </h4>
-                <div className="grid grid-cols-3 gap-4 text-xs text-indigo-600 dark:text-indigo-400">
-                  <div className="bg-white dark:bg-slate-800 p-2 rounded-lg">
-                    <strong>Initial Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s
-                  </div>
-                  <div className="bg-white dark:bg-slate-800 p-2 rounded-lg">
-                    <strong>Idle Pause:</strong> &lt;{candidateType === 'Freshman Intern' ? '40' : '25'}s
-                  </div>
-                  <div className="bg-white dark:bg-slate-800 p-2 rounded-lg">
-                    <strong>Edit Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '60' : '30'}s
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-foreground">
-                Problem: Implement a function to reverse a string efficiently
-              </label>
-              <Textarea 
-                ref={textareaRef}
-                placeholder="Write your code here..." 
-                value={code} 
-                onChange={e => setCode(e.target.value)} 
-                onKeyDown={handleKeyDown} 
-                onPaste={handlePaste} 
-                className="min-h-96 font-mono text-sm bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-foreground placeholder-slate-500 dark:placeholder-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200" 
-                disabled={!sessionActive} 
-              />
-            </div>
-
-            {/* Live Detection Flags */}
-            {sessionActive && liveDetectionFlags.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-red-600 dark:text-red-400">Live Detection Flags:</h4>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {liveDetectionFlags.slice(-5).map((flag, index) => (
-                    <div key={index} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3">
-                      <div className="flex items-center space-x-2">
-                        <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                        <span className="text-sm font-medium text-red-700 dark:text-red-300">{flag}</span>
+              {/* Profile Information */}
+              {!sessionActive && (
+                <Alert>
+                  <Code className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="space-y-2">
+                      <div className="font-semibold">Selected Profile: {candidateType}</div>
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>Initial Delay: &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s</div>
+                        <div>Idle Pause: &lt;{candidateType === 'Freshman Intern' ? '40' : '25'}s</div>
+                        <div>Edit Delay: &lt;{candidateType === 'Freshman Intern' ? '60' : '30'}s</div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <Separator />
+              
+              {/* Problem Statement */}
+              <div className="space-y-3">
+                <label className="text-sm font-semibold">
+                  Problem: Implement a function to reverse a string efficiently
+                </label>
+                <Textarea 
+                  ref={textareaRef}
+                  placeholder="Write your code here..." 
+                  value={code} 
+                  onChange={e => setCode(e.target.value)} 
+                  onKeyDown={handleKeyDown} 
+                  onPaste={handlePaste} 
+                  className="min-h-96 font-mono text-sm resize-none" 
+                  disabled={!sessionActive} 
+                />
               </div>
-            )}
-            
-            <div className="flex space-x-3">
-              <Button onClick={runCode} disabled={!sessionActive} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition-all duration-200 font-medium">
-                <Play className="h-4 w-4 mr-2" />
-                Run Code
-              </Button>
-              <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive} className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 px-4 py-2 rounded-xl transition-all duration-200 font-medium">
-                <Save className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Risk Verdict Display */}
-        <RiskVerdictDisplay 
-          detectionResult={finalDetectionResult} 
-          isVisible={!sessionActive && finalDetectionResult !== null} 
-        />
-      </div>
+              {/* Live Detection Flags */}
+              {sessionActive && liveDetectionFlags.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-destructive">Live Detection Flags:</h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {liveDetectionFlags.slice(-5).map((flag, index) => (
+                      <Alert key={index} variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription className="text-sm font-medium">
+                          {flag}
+                        </AlertDescription>
+                      </Alert>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button onClick={runCode} disabled={!sessionActive} className="gap-2">
+                  <Play className="h-4 w-4" />
+                  Run Code
+                </Button>
+                <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive} className="gap-2">
+                  <Save className="h-4 w-4" />
+                  Save
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Monitoring Panel */}
-      <div className="space-y-6">
-        <TypingAnalyzer 
-          typingEvents={typingEvents} 
-          isActive={sessionActive} 
-          profile={currentProfile} 
-          onSuspiciousActivity={activity => {
-            setLiveDetectionFlags(prev => [...prev, activity]);
-            toast({
-              title: "Suspicious Activity",
-              description: activity,
-              variant: "destructive"
-            });
-          }} 
-        />
-        
-        <RealTimeMonitor 
-          isActive={sessionActive} 
-          tabSwitches={tabSwitches} 
-          onSuspiciousActivity={activity => {
-            setLiveDetectionFlags(prev => [...prev, activity]);
-          }} 
-        />
+          {/* Risk Verdict Display */}
+          <RiskVerdictDisplay 
+            detectionResult={finalDetectionResult} 
+            isVisible={!sessionActive && finalDetectionResult !== null} 
+          />
+        </div>
+
+        {/* Monitoring Panel */}
+        <div className="space-y-6">
+          <TypingAnalyzer 
+            typingEvents={typingEvents} 
+            isActive={sessionActive} 
+            profile={currentProfile} 
+            onSuspiciousActivity={activity => {
+              setLiveDetectionFlags(prev => [...prev, activity]);
+              toast({
+                title: "Suspicious Activity",
+                description: activity,
+                variant: "destructive"
+              });
+            }} 
+          />
+          
+          <RealTimeMonitor 
+            isActive={sessionActive} 
+            tabSwitches={tabSwitches} 
+            onSuspiciousActivity={activity => {
+              setLiveDetectionFlags(prev => [...prev, activity]);
+            }} 
+          />
+        </div>
       </div>
     </div>
   );

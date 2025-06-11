@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw, Search, Pin, Flag } from 'lucide-react';
 import { apiService, SessionData } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
@@ -66,10 +68,8 @@ const AdminDashboard = () => {
       );
     }
     
-    // Sort sessions by timestamp in descending order (latest first)
     filtered = filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
-    // Pinned sessions first
     filtered = filtered.sort((a, b) => {
       const aIsPinned = pinnedSessions.has(a.id);
       const bIsPinned = pinnedSessions.has(b.id);
@@ -111,16 +111,16 @@ const AdminDashboard = () => {
     }
   };
 
-  const getVerdictColor = (verdict: string) => {
+  const getVerdictVariant = (verdict: string) => {
     switch (verdict) {
       case 'Human':
-        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
+        return 'default';
       case 'Likely Bot':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800';
+        return 'secondary';
       case 'AI Assisted':
-        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
+        return 'destructive';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600';
+        return 'outline';
     }
   };
 
@@ -143,7 +143,6 @@ const AdminDashboard = () => {
     return `${minutes}m ${seconds}s`;
   };
 
-  // Ensure arrays are defined before accessing length
   const sessionsArray = Array.isArray(sessions) ? sessions : [];
   const filteredSessionsArray = Array.isArray(filteredSessions) ? filteredSessions : [];
   
@@ -153,59 +152,59 @@ const AdminDashboard = () => {
   const aiAssistedCount = sessionsArray.filter(s => s.verdict === 'AI Assisted').length;
 
   return (
-    <div className="min-h-screen space-y-8">
-      {/* Modern Stats Grid */}
+    <div className="max-w-screen-2xl mx-auto p-6 space-y-8">
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-card border border-border shadow-lg rounded-xl hover:shadow-xl transition-all duration-300">
+        <Card className="shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Total Sessions</p>
-                <p className="text-3xl font-bold text-foreground">{totalSessions}</p>
+                <p className="text-3xl font-bold">{totalSessions}</p>
               </div>
-              <div className="p-3 bg-[#6C63FF] rounded-xl shadow-sm">
-                <Users className="h-6 w-6 text-white" />
+              <div className="p-3 bg-primary rounded-lg">
+                <Users className="h-6 w-6 text-primary-foreground" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border shadow-lg rounded-xl hover:shadow-xl transition-all duration-300">
+        <Card className="shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Clean</p>
-                <p className="text-3xl font-bold text-green-600">{humanCount}</p>
+                <p className="text-3xl font-bold text-green-600 dark:text-green-400">{humanCount}</p>
               </div>
-              <div className="p-3 bg-green-500 rounded-xl shadow-sm">
+              <div className="p-3 bg-green-500 rounded-lg">
                 <CheckCircle className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border shadow-lg rounded-xl hover:shadow-xl transition-all duration-300">
+        <Card className="shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Suspicious</p>
-                <p className="text-3xl font-bold text-yellow-600">{botCount}</p>
+                <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{botCount}</p>
               </div>
-              <div className="p-3 bg-yellow-500 rounded-xl shadow-sm">
+              <div className="p-3 bg-yellow-500 rounded-lg">
                 <Clock className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border shadow-lg rounded-xl hover:shadow-xl transition-all duration-300">
+        <Card className="shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Plagiarised</p>
-                <p className="text-3xl font-bold text-red-600">{aiAssistedCount}</p>
+                <p className="text-3xl font-bold text-red-600 dark:text-red-400">{aiAssistedCount}</p>
               </div>
-              <div className="p-3 bg-red-500 rounded-xl shadow-sm">
+              <div className="p-3 bg-red-500 rounded-lg">
                 <AlertTriangle className="h-6 w-6 text-white" />
               </div>
             </div>
@@ -213,38 +212,36 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      {/* Modern Control Panel */}
-      <Card className="bg-card border border-border shadow-lg rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-[#6C63FF] to-[#5A52E8] rounded-t-xl">
+      {/* Session Management */}
+      <Card className="shadow-lg">
+        <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-white font-semibold">
-              Session Management Dashboard
-            </CardTitle>
-            <div className="flex space-x-3">
+            <CardTitle>Session Management Dashboard</CardTitle>
+            <div className="flex gap-3">
               <Button 
                 onClick={loadSessions} 
                 variant="outline" 
                 disabled={isLoading}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 hover:border-white/50 backdrop-blur-sm transition-all duration-300"
+                className="gap-2"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
               <Button 
                 onClick={exportData} 
                 variant="outline" 
                 disabled={filteredSessionsArray.length === 0}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 hover:border-white/50 backdrop-blur-sm transition-all duration-300"
+                className="gap-2"
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-4 w-4" />
                 Export ({filteredSessionsArray.length})
               </Button>
             </div>
           </div>
         </CardHeader>
         
-        <CardContent className="p-6 space-y-6">
-          {/* Enhanced Filters */}
+        <CardContent className="space-y-6">
+          {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -252,15 +249,15 @@ const AdminDashboard = () => {
                 placeholder="Search by name or ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-background border-border rounded-lg"
+                className="pl-10"
               />
             </div>
 
             <Select value={filterVerdict} onValueChange={setFilterVerdict}>
-              <SelectTrigger className="bg-background border-border rounded-lg">
+              <SelectTrigger>
                 <SelectValue placeholder="Filter by Verdict" />
               </SelectTrigger>
-              <SelectContent className="bg-card border-border rounded-lg">
+              <SelectContent>
                 <SelectItem value="all">All Verdicts</SelectItem>
                 <SelectItem value="Human">Clean</SelectItem>
                 <SelectItem value="Likely Bot">Suspicious</SelectItem>
@@ -269,31 +266,33 @@ const AdminDashboard = () => {
             </Select>
 
             <Select value={filterCandidateType} onValueChange={setFilterCandidateType}>
-              <SelectTrigger className="bg-background border-border rounded-lg">
+              <SelectTrigger>
                 <SelectValue placeholder="Filter by Type" />
               </SelectTrigger>
-              <SelectContent className="bg-card border-border rounded-lg">
+              <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
                 <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
               </SelectContent>
             </Select>
 
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Filter className="h-4 w-4 mr-2" />
+            <div className="flex items-center text-sm text-muted-foreground gap-2">
+              <Filter className="h-4 w-4" />
               {filteredSessionsArray.length} of {sessionsArray.length} sessions
             </div>
           </div>
 
-          {/* Enhanced Sessions List */}
+          <Separator />
+
+          {/* Sessions List */}
           <div className="space-y-4">
             {filteredSessionsArray.length === 0 && !isLoading && (
               <div className="text-center py-12">
-                <Card className="bg-background border border-border rounded-xl p-8">
-                  <p className="text-muted-foreground">
+                <Alert>
+                  <AlertDescription>
                     {sessionsArray.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
-                  </p>
-                </Card>
+                  </AlertDescription>
+                </Alert>
               </div>
             )}
 
@@ -304,38 +303,33 @@ const AdminDashboard = () => {
               const isPinned = pinnedSessions.has(session.id);
               
               return (
-                <Card 
-                  key={session.id} 
-                  className={`bg-card border border-border shadow-lg rounded-xl transition-all duration-300 hover:shadow-xl hover:border-[#6C63FF]/30 ${isPinned ? 'ring-2 ring-[#6C63FF]/50' : ''}`}
-                >
+                <Card key={session.id} className={`shadow-md transition-all duration-300 hover:shadow-lg ${isPinned ? 'ring-2 ring-primary' : ''}`}>
                   <CardContent className="p-6">
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                       {/* Session Info */}
                       <div className="space-y-3">
                         <div className="flex items-start justify-between">
                           <div className="space-y-2">
-                            <div className="flex items-center space-x-3">
-                              <h3 className="text-lg font-semibold text-foreground">{session.candidateName}</h3>
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-semibold">{session.candidateName}</h3>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => togglePin(session.id)}
-                                className={`p-1 h-7 w-7 ${isPinned ? 'text-[#6C63FF]' : 'text-muted-foreground'}`}
+                                className={`p-1 h-7 w-7 ${isPinned ? 'text-primary' : 'text-muted-foreground'}`}
                               >
                                 <Pin className={`h-4 w-4 ${isPinned ? 'fill-current' : ''}`} />
                               </Button>
                             </div>
-                            <Badge className="text-xs bg-[#6C63FF]/10 text-[#6C63FF] border-[#6C63FF]/20 rounded-lg">
+                            <Badge variant="secondary" className="text-xs">
                               {session.candidateType}
                             </Badge>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge className={`${getVerdictColor(session.verdict)} rounded-lg font-medium`}>
-                            {getVerdictIcon(session.verdict)}
-                            <span className="ml-1">{session.verdict}</span>
-                          </Badge>
-                        </div>
+                        <Badge variant={getVerdictVariant(session.verdict)} className="gap-1">
+                          {getVerdictIcon(session.verdict)}
+                          <span>{session.verdict}</span>
+                        </Badge>
                         <div className="space-y-1 text-sm text-muted-foreground">
                           <p>Started: {new Date(session.timestamp).toLocaleString()}</p>
                           <p>Duration: {formatDuration(session.duration)}</p>
@@ -344,61 +338,61 @@ const AdminDashboard = () => {
 
                       {/* Typing Stats */}
                       <div className="space-y-3">
-                        <h4 className="font-medium text-foreground">Typing Analysis</h4>
+                        <h4 className="font-medium">Typing Analysis</h4>
                         <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="bg-background rounded-lg p-3 border border-border">
+                          <div className="bg-muted rounded-lg p-3">
                             <span className="text-muted-foreground block text-xs">WPM</span>
-                            <span className="font-semibold text-foreground">{session.typingStats?.totalWPM || 'N/A'}</span>
+                            <span className="font-semibold">{session.typingStats?.totalWPM || 'N/A'}</span>
                           </div>
-                          <div className="bg-background rounded-lg p-3 border border-border">
+                          <div className="bg-muted rounded-lg p-3">
                             <span className="text-muted-foreground block text-xs">Time</span>
-                            <span className="font-semibold text-foreground">{session.typingStats?.totalTime || 'N/A'}m</span>
+                            <span className="font-semibold">{session.typingStats?.totalTime || 'N/A'}m</span>
                           </div>
-                          <div className="bg-background rounded-lg p-3 border border-border">
+                          <div className="bg-muted rounded-lg p-3">
                             <span className="text-muted-foreground block text-xs">Lines</span>
-                            <span className="font-semibold text-foreground">{session.typingStats?.linesOfCode || 'N/A'}</span>
+                            <span className="font-semibold">{session.typingStats?.linesOfCode || 'N/A'}</span>
                           </div>
-                          <div className="bg-background rounded-lg p-3 border border-border">
+                          <div className="bg-muted rounded-lg p-3">
                             <span className="text-muted-foreground block text-xs">Bursts</span>
-                            <span className="font-semibold text-foreground">{session.typingStats?.typingBursts || 'N/A'}</span>
+                            <span className="font-semibold">{session.typingStats?.typingBursts || 'N/A'}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Code Analysis */}
                       <div className="space-y-3">
-                        <h4 className="font-medium text-foreground">Code Analysis</h4>
+                        <h4 className="font-medium">Code Analysis</h4>
                         <div className="text-sm space-y-2">
-                          <div className="bg-background rounded-lg p-3 border border-border">
+                          <div className="bg-muted rounded-lg p-3">
                             <span className="text-muted-foreground block text-xs">Characters</span>
-                            <span className="font-semibold text-foreground">{code.length}</span>
+                            <span className="font-semibold">{code.length}</span>
                           </div>
-                          <div className="bg-background rounded-lg p-3 border border-border">
+                          <div className="bg-muted rounded-lg p-3">
                             <span className="text-muted-foreground block text-xs">Events</span>
-                            <span className="font-semibold text-foreground">{typingEvents.length}</span>
+                            <span className="font-semibold">{typingEvents.length}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Detection Flags */}
                       <div className="lg:col-span-2 space-y-3">
-                        <h4 className="font-medium text-foreground">Detection Results ({detectionFlags.length})</h4>
+                        <h4 className="font-medium">Detection Results ({detectionFlags.length})</h4>
                         {detectionFlags.length === 0 ? (
-                          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                            <div className="flex items-center space-x-2">
-                              <CheckCircle className="h-5 w-5 text-green-600" />
-                              <p className="text-sm font-medium text-green-800 dark:text-green-300">No suspicious activities detected</p>
-                            </div>
-                          </div>
+                          <Alert>
+                            <CheckCircle className="h-5 w-5" />
+                            <AlertDescription className="font-medium">
+                              No suspicious activities detected
+                            </AlertDescription>
+                          </Alert>
                         ) : (
                           <div className="space-y-2 max-h-32 overflow-y-auto">
                             {detectionFlags.map((flag, index) => (
-                              <div key={index} className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
-                                <div className="flex items-center space-x-2">
-                                  <Flag className="h-4 w-4 text-red-600" />
-                                  <span className="text-sm font-medium text-red-800 dark:text-red-300">{flag}</span>
-                                </div>
-                              </div>
+                              <Alert key={index} variant="destructive">
+                                <Flag className="h-4 w-4" />
+                                <AlertDescription className="font-medium">
+                                  {flag}
+                                </AlertDescription>
+                              </Alert>
                             ))}
                           </div>
                         )}
