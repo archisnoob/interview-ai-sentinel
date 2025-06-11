@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,9 +14,7 @@ const AdminDashboard = () => {
   const [filterVerdict, setFilterVerdict] = useState<string>('all');
   const [filterCandidateType, setFilterCandidateType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
 
   useEffect(() => {
     loadSessions();
@@ -53,6 +52,10 @@ const AdminDashboard = () => {
     if (filterCandidateType !== 'all') {
       filtered = filtered.filter(session => session.candidateType === filterCandidateType);
     }
+    
+    // Sort sessions by timestamp in descending order (latest first)
+    filtered = filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
     setFilteredSessions(filtered);
   };
 
@@ -75,13 +78,13 @@ const AdminDashboard = () => {
   const getVerdictColor = (verdict: string) => {
     switch (verdict) {
       case 'Human':
-        return 'bg-green-100/80 dark:bg-green-900/50 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700';
+        return 'bg-success-light text-success border-success/20';
       case 'Likely Bot':
-        return 'bg-yellow-100/80 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700';
+        return 'bg-warning-light text-warning border-warning/20';
       case 'AI Assisted':
-        return 'bg-red-100/80 dark:bg-red-900/50 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700';
+        return 'bg-error-light text-error border-error/20';
       default:
-        return 'bg-gray-100/80 dark:bg-gray-900/50 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
+        return 'bg-secondary text-secondary border-border';
     }
   };
 
@@ -113,57 +116,57 @@ const AdminDashboard = () => {
     <div className="min-h-screen space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="stats-card-gradient border-0 shadow-xl enhanced-hover">
+        <Card className="card-professional modern-shadow-lg animate-fade-in-up">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 accent-gradient rounded-full shadow-md">
+              <div className="p-3 bg-accent rounded-xl modern-shadow">
                 <Users className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-white/80 font-medium">Total Sessions</p>
-                <p className="text-3xl font-bold text-white drop-shadow-sm">{totalSessions}</p>
+                <p className="text-sm text-muted font-medium">Total Sessions</p>
+                <p className="text-3xl font-bold text-primary">{totalSessions}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="stats-card-gradient border-0 shadow-xl enhanced-hover">
+        <Card className="card-professional modern-shadow-lg animate-fade-in-up">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-green-500/90 rounded-full shadow-md">
+              <div className="p-3 bg-success rounded-xl modern-shadow">
                 <CheckCircle className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-white/80 font-medium">Human</p>
-                <p className="text-3xl font-bold text-white drop-shadow-sm">{humanCount}</p>
+                <p className="text-sm text-muted font-medium">Human</p>
+                <p className="text-3xl font-bold text-primary">{humanCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="stats-card-gradient border-0 shadow-xl enhanced-hover">
+        <Card className="card-professional modern-shadow-lg animate-fade-in-up">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-orange-500/90 rounded-full shadow-md">
+              <div className="p-3 bg-warning rounded-xl modern-shadow">
                 <Clock className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-white/80 font-medium">Likely Bot</p>
-                <p className="text-3xl font-bold text-white drop-shadow-sm">{botCount}</p>
+                <p className="text-sm text-muted font-medium">Likely Bot</p>
+                <p className="text-3xl font-bold text-primary">{botCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="stats-card-gradient border-0 shadow-xl enhanced-hover">
+        <Card className="card-professional modern-shadow-lg animate-fade-in-up">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-red-500/90 rounded-full shadow-md">
+              <div className="p-3 bg-error rounded-xl modern-shadow">
                 <AlertTriangle className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-white/80 font-medium">AI Assisted</p>
-                <p className="text-3xl font-bold text-white drop-shadow-sm">{aiAssistedCount}</p>
+                <p className="text-sm text-muted font-medium">AI Assisted</p>
+                <p className="text-3xl font-bold text-primary">{aiAssistedCount}</p>
               </div>
             </div>
           </CardContent>
@@ -171,10 +174,10 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Dashboard */}
-      <Card className="card-gradient border-0 shadow-xl">
-        <CardHeader className="header-gradient">
+      <Card className="card-professional modern-shadow-lg">
+        <CardHeader className="gradient-primary">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2 text-white drop-shadow-sm">
+            <CardTitle className="flex items-center space-x-2 text-white">
               <Filter className="h-5 w-5" />
               <span>Admin Dashboard</span>
             </CardTitle>
@@ -205,10 +208,10 @@ const AdminDashboard = () => {
           {/* Filters */}
           <div className="flex space-x-4 mb-6">
             <Select value={filterVerdict} onValueChange={setFilterVerdict}>
-              <SelectTrigger className="w-48 bg-white/50 dark:bg-white/10 backdrop-blur-sm border-white/30 dark:border-white/20">
+              <SelectTrigger className="w-48 input-professional">
                 <SelectValue placeholder="Filter by Verdict" />
               </SelectTrigger>
-              <SelectContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+              <SelectContent className="bg-card border-default">
                 <SelectItem value="all">All Verdicts</SelectItem>
                 <SelectItem value="Human">Human</SelectItem>
                 <SelectItem value="Likely Bot">Likely Bot</SelectItem>
@@ -217,10 +220,10 @@ const AdminDashboard = () => {
             </Select>
 
             <Select value={filterCandidateType} onValueChange={setFilterCandidateType}>
-              <SelectTrigger className="w-48 bg-white/50 dark:bg-white/10 backdrop-blur-sm border-white/30 dark:border-white/20">
+              <SelectTrigger className="w-48 input-professional">
                 <SelectValue placeholder="Filter by Candidate Type" />
               </SelectTrigger>
-              <SelectContent className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+              <SelectContent className="bg-card border-default">
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
                 <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
@@ -231,22 +234,24 @@ const AdminDashboard = () => {
           {/* Sessions List */}
           <div className="space-y-4">
             {filteredSessions.length === 0 && !isLoading && (
-              <div className="text-center py-12 text-secondary">
-                <div className="bg-white/50 dark:bg-white/10 rounded-lg p-8 backdrop-blur-sm">
-                  {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
+              <div className="text-center py-12">
+                <div className="card-professional p-8">
+                  <p className="text-muted">
+                    {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
+                  </p>
                 </div>
               </div>
             )}
 
             {filteredSessions.map((session) => (
-              <Card key={session.id} className="gradient-border enhanced-hover">
+              <Card key={session.id} className="card-professional modern-shadow animate-fade-in-up">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Basic Info */}
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3">
                         <h3 className="text-lg font-semibold text-primary">{session.candidateName}</h3>
-                        <Badge className="text-xs bg-blue-100/80 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700">
+                        <Badge className="text-xs bg-accent/10 text-accent border-accent/20">
                           {session.candidateType}
                         </Badge>
                       </div>
@@ -256,63 +261,63 @@ const AdminDashboard = () => {
                           <span className="ml-1">{session.verdict}</span>
                         </Badge>
                       </div>
-                      <p className="text-sm text-secondary">
+                      <p className="text-sm text-muted">
                         Started: {new Date(session.timestamp).toLocaleString()}
                       </p>
-                      <p className="text-sm text-secondary">
+                      <p className="text-sm text-muted">
                         Duration: {formatDuration(session.duration)}
                       </p>
                     </div>
 
                     {/* Typing Stats */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900 dark:text-white">Typing Stats</h4>
+                      <h4 className="font-medium text-card">Typing Stats</h4>
                       <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
-                          <span className="text-gray-600 dark:text-gray-300 block text-xs">Total WPM:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">{session.typingStats?.totalWPM || 'N/A'}</span>
+                        <div className="bg-secondary/50 rounded-md p-2">
+                          <span className="text-muted block text-xs">Total WPM:</span>
+                          <span className="font-semibold text-card">{session.typingStats?.totalWPM || 'N/A'}</span>
                         </div>
-                        <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
-                          <span className="text-gray-600 dark:text-gray-300 block text-xs">Total Time:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">{session.typingStats?.totalTime || 'N/A'}m</span>
+                        <div className="bg-secondary/50 rounded-md p-2">
+                          <span className="text-muted block text-xs">Total Time:</span>
+                          <span className="font-semibold text-card">{session.typingStats?.totalTime || 'N/A'}m</span>
                         </div>
-                        <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
-                          <span className="text-gray-600 dark:text-gray-300 block text-xs">Lines of Code:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">{session.typingStats?.linesOfCode || 'N/A'}</span>
+                        <div className="bg-secondary/50 rounded-md p-2">
+                          <span className="text-muted block text-xs">Lines of Code:</span>
+                          <span className="font-semibold text-card">{session.typingStats?.linesOfCode || 'N/A'}</span>
                         </div>
-                        <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
-                          <span className="text-gray-600 dark:text-gray-300 block text-xs">Typing Bursts:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">{session.typingStats?.typingBursts || 'N/A'}</span>
+                        <div className="bg-secondary/50 rounded-md p-2">
+                          <span className="text-muted block text-xs">Typing Bursts:</span>
+                          <span className="font-semibold text-card">{session.typingStats?.typingBursts || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Code Analysis */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900 dark:text-white">Code Analysis</h4>
+                      <h4 className="font-medium text-card">Code Analysis</h4>
                       <div className="text-sm space-y-2">
-                        <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
-                          <span className="text-gray-600 dark:text-gray-300 block text-xs">Characters:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">{session.code.length}</span>
+                        <div className="bg-secondary/50 rounded-md p-2">
+                          <span className="text-muted block text-xs">Characters:</span>
+                          <span className="font-semibold text-card">{session.code.length}</span>
                         </div>
-                        <div className="bg-white/30 dark:bg-white/10 rounded-md p-2">
-                          <span className="text-gray-600 dark:text-gray-300 block text-xs">Typing Events:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">{session.typingEvents.length}</span>
+                        <div className="bg-secondary/50 rounded-md p-2">
+                          <span className="text-muted block text-xs">Typing Events:</span>
+                          <span className="font-semibold text-card">{session.typingEvents.length}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Detection Flags */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900 dark:text-white">Detection Flags ({session.detectionFlags.length})</h4>
+                      <h4 className="font-medium text-card">Detection Flags ({session.detectionFlags.length})</h4>
                       {session.detectionFlags.length === 0 ? (
-                        <div className="bg-green-50/80 dark:bg-green-900/30 rounded-md p-3">
-                          <p className="text-sm text-green-600 dark:text-green-400">No suspicious activities detected</p>
+                        <div className="bg-success-light rounded-md p-3">
+                          <p className="text-sm text-success">No suspicious activities detected</p>
                         </div>
                       ) : (
                         <div className="space-y-1 max-h-32 overflow-y-auto">
                           {session.detectionFlags.map((flag, index) => (
-                            <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full bg-red-100/80 dark:bg-red-900/50 text-red-800 dark:text-red-200">
+                            <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full bg-error-light text-error">
                               {flag}
                             </Badge>
                           ))}
