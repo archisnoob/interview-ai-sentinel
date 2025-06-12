@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,23 +6,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw } from 'lucide-react';
 import { apiService, SessionData } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-
 const AdminDashboard = () => {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<SessionData[]>([]);
   const [filterVerdict, setFilterVerdict] = useState<string>('all');
   const [filterCandidateType, setFilterCandidateType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     loadSessions();
   }, []);
-
   useEffect(() => {
     applyFilters();
   }, [sessions, filterVerdict, filterCandidateType]);
-
   const loadSessions = async () => {
     setIsLoading(true);
     try {
@@ -43,7 +40,6 @@ const AdminDashboard = () => {
       setIsLoading(false);
     }
   };
-
   const applyFilters = () => {
     let filtered = sessions;
     if (filterVerdict !== 'all') {
@@ -54,7 +50,6 @@ const AdminDashboard = () => {
     }
     setFilteredSessions(filtered);
   };
-
   const exportData = () => {
     try {
       apiService.exportSessions(filteredSessions);
@@ -70,7 +65,6 @@ const AdminDashboard = () => {
       });
     }
   };
-
   const getVerdictColor = (verdict: string) => {
     switch (verdict) {
       case 'Human':
@@ -83,7 +77,6 @@ const AdminDashboard = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
   const getVerdictIcon = (verdict: string) => {
     switch (verdict) {
       case 'Human':
@@ -96,20 +89,16 @@ const AdminDashboard = () => {
         return <CheckCircle className="h-4 w-4" />;
     }
   };
-
   const formatDuration = (milliseconds: number) => {
     const minutes = Math.floor(milliseconds / 60000);
-    const seconds = Math.floor((milliseconds % 60000) / 1000);
+    const seconds = Math.floor(milliseconds % 60000 / 1000);
     return `${minutes}m ${seconds}s`;
   };
-
   const totalSessions = sessions.length;
   const humanCount = sessions.filter(s => s.verdict === 'Human').length;
   const botCount = sessions.filter(s => s.verdict === 'Likely Bot').length;
   const aiAssistedCount = sessions.filter(s => s.verdict === 'AI Assisted').length;
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -119,7 +108,7 @@ const AdminDashboard = () => {
                 <Users className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Sessions</p>
+                <p className="text-sm text-slate-50">Total Sessions</p>
                 <p className="text-2xl font-bold">{totalSessions}</p>
               </div>
             </div>
@@ -218,14 +207,11 @@ const AdminDashboard = () => {
 
           {/* Sessions List */}
           <div className="space-y-4">
-            {filteredSessions.length === 0 && !isLoading && (
-              <div className="text-center py-8 text-gray-500">
+            {filteredSessions.length === 0 && !isLoading && <div className="text-center py-8 text-gray-500">
                 {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
-              </div>
-            )}
+              </div>}
 
-            {filteredSessions.map(session => (
-              <Card key={session.id} className="border-l-4 border-l-gray-200">
+            {filteredSessions.map(session => <Card key={session.id} className="border-l-4 border-l-gray-200">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Basic Info */}
@@ -240,17 +226,17 @@ const AdminDashboard = () => {
                           <span className="ml-1">{session.verdict}</span>
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-slate-50">
                         Started: {new Date(session.timestamp).toLocaleString()}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-slate-50">
                         Duration: {formatDuration(session.duration)}
                       </p>
                     </div>
 
                     {/* Typing Stats */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Typing Stats</h4>
+                      <h4 className="font-medium text-slate-300">Typing Stats</h4>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <span className="text-gray-600">Total WPM:</span>
@@ -273,7 +259,7 @@ const AdminDashboard = () => {
 
                     {/* Code Analysis */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Code Analysis</h4>
+                      <h4 className="font-medium text-slate-50">Code Analysis</h4>
                       <div className="text-sm space-y-1">
                         <div>
                           <span className="text-gray-600">Characters:</span>
@@ -288,28 +274,19 @@ const AdminDashboard = () => {
 
                     {/* Detection Flags */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Detection Flags ({session.detectionFlags?.length || 0})</h4>
-                      {(!session.detectionFlags || session.detectionFlags.length === 0) ? (
-                        <p className="text-sm text-green-600">No suspicious activities detected</p>
-                      ) : (
-                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {session.detectionFlags.map((flag, index) => (
-                            <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full">
+                      <h4 className="font-medium text-slate-50">Detection Flags ({session.detectionFlags?.length || 0})</h4>
+                      {!session.detectionFlags || session.detectionFlags.length === 0 ? <p className="text-sm text-green-600">No suspicious activities detected</p> : <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {session.detectionFlags.map((flag, index) => <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full">
                               {flag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                            </Badge>)}
+                        </div>}
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default AdminDashboard;
