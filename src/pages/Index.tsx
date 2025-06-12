@@ -9,60 +9,54 @@ import { Shield, Code, BarChart3 } from 'lucide-react';
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header - TypingGuard Style */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border typing-guard-shadow">
-        <div className="max-w-screen-2xl mx-auto px-6 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-colors">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary rounded-2xl typing-guard-shadow-lg">
-                <Shield className="h-7 w-7 text-primary-foreground" />
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-600 dark:bg-blue-500 rounded-lg transition-colors">
+                <Shield className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  CodeGuard AI
-                </h1>
-                <p className="text-sm text-muted-foreground font-medium">
-                  Advanced Plagiarism Detection for Code Interviews
-                </p>
+                <h1 className="text-2xl font-bold text-red-500 dark:text-red-400 transition-colors">AI Cheating Detection System</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-300 transition-colors">Advanced behavioral analysis for coding interviews</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content - TypingGuard Layout */}
-      <main className="max-w-screen-2xl mx-auto px-6 py-6">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="interview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-96 p-1 bg-card rounded-2xl border border-border">
+          <TabsList className="grid w-full grid-cols-2 lg:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700">
             <TabsTrigger 
               value="interview" 
-              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 font-medium rounded-xl"
+              className="flex items-center space-x-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/50 transition-colors"
             >
               <Code className="h-4 w-4" />
-              <span>Live Interview</span>
+              <span>Interview Platform</span>
             </TabsTrigger>
             <TabsTrigger 
               value="dashboard" 
-              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300 font-medium rounded-xl"
+              className="flex items-center space-x-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/50 transition-colors"
             >
               <BarChart3 className="h-4 w-4" />
-              <span>Admin Panel</span>
+              <span>Admin Dashboard</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="interview" className="animate-fade-in-up">
+          <TabsContent value="interview">
             <CodingInterface />
           </TabsContent>
 
-          <TabsContent value="dashboard" className="animate-fade-in-up">
+          <TabsContent value="dashboard">
             <AdminDashboard />
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
     </div>
   );
 };

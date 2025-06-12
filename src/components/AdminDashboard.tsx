@@ -2,45 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw, Search, Pin, Flag } from 'lucide-react';
+import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw } from 'lucide-react';
 import { apiService, SessionData } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-
 const AdminDashboard = () => {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<SessionData[]>([]);
   const [filterVerdict, setFilterVerdict] = useState<string>('all');
   const [filterCandidateType, setFilterCandidateType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [pinnedSessions, setPinnedSessions] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     loadSessions();
   }, []);
-
   useEffect(() => {
     applyFilters();
-  }, [sessions, filterVerdict, filterCandidateType, searchTerm]);
-
+  }, [sessions, filterVerdict, filterCandidateType]);
   const loadSessions = async () => {
     setIsLoading(true);
     try {
       const sessionData = await apiService.getSessions();
-      const validSessionData = Array.isArray(sessionData) ? sessionData : [];
-      setSessions(validSessionData);
+      setSessions(sessionData);
       toast({
         title: "Data Loaded",
-        description: `Found ${validSessionData.length} sessions`
+        description: `Found ${sessionData.length} sessions`
       });
     } catch (error) {
-      console.error('Failed to load sessions:', error);
-      setSessions([]);
       toast({
         title: "Error",
         description: "Failed to load session data",
@@ -50,59 +40,24 @@ const AdminDashboard = () => {
       setIsLoading(false);
     }
   };
-
   const applyFilters = () => {
-    const sessionsArray = Array.isArray(sessions) ? sessions : [];
-    let filtered = sessionsArray;
-    
+    let filtered = sessions;
     if (filterVerdict !== 'all') {
       filtered = filtered.filter(session => session.verdict === filterVerdict);
     }
     if (filterCandidateType !== 'all') {
       filtered = filtered.filter(session => session.candidateType === filterCandidateType);
     }
-    if (searchTerm) {
-      filtered = filtered.filter(session => 
-        session.candidateName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        session.id?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    filtered = filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    
-    filtered = filtered.sort((a, b) => {
-      const aIsPinned = pinnedSessions.has(a.id);
-      const bIsPinned = pinnedSessions.has(b.id);
-      if (aIsPinned && !bIsPinned) return -1;
-      if (!aIsPinned && bIsPinned) return 1;
-      return 0;
-    });
-    
     setFilteredSessions(filtered);
   };
-
-  const togglePin = (sessionId: string) => {
-    setPinnedSessions(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sessionId)) {
-        newSet.delete(sessionId);
-      } else {
-        newSet.add(sessionId);
-      }
-      return newSet;
-    });
-  };
-
   const exportData = () => {
     try {
-      const sessionsToExport = Array.isArray(filteredSessions) ? filteredSessions : [];
-      apiService.exportSessions(sessionsToExport);
+      apiService.exportSessions(filteredSessions);
       toast({
         title: "Export Complete",
-        description: `Exported ${sessionsToExport.length} sessions`
+        description: `Exported ${filteredSessions.length} sessions`
       });
     } catch (error) {
-      console.error('Export failed:', error);
       toast({
         title: "Export Failed",
         description: "Could not export session data",
@@ -110,20 +65,18 @@ const AdminDashboard = () => {
       });
     }
   };
-
-  const getVerdictVariant = (verdict: string) => {
+  const getVerdictColor = (verdict: string) => {
     switch (verdict) {
       case 'Human':
-        return 'default';
+        return 'bg-green-100 text-green-800';
       case 'Likely Bot':
-        return 'secondary';
+        return 'bg-yellow-100 text-yellow-800';
       case 'AI Assisted':
-        return 'destructive';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'outline';
+        return 'bg-gray-100 text-gray-800';
     }
   };
-
   const getVerdictIcon = (verdict: string) => {
     switch (verdict) {
       case 'Human':
@@ -136,277 +89,204 @@ const AdminDashboard = () => {
         return <CheckCircle className="h-4 w-4" />;
     }
   };
-
   const formatDuration = (milliseconds: number) => {
     const minutes = Math.floor(milliseconds / 60000);
-    const seconds = Math.floor((milliseconds % 60000) / 1000);
+    const seconds = Math.floor(milliseconds % 60000 / 1000);
     return `${minutes}m ${seconds}s`;
   };
-
-  const sessionsArray = Array.isArray(sessions) ? sessions : [];
-  const filteredSessionsArray = Array.isArray(filteredSessions) ? filteredSessions : [];
-  
-  const totalSessions = sessionsArray.length;
-  const humanCount = sessionsArray.filter(s => s.verdict === 'Human').length;
-  const botCount = sessionsArray.filter(s => s.verdict === 'Likely Bot').length;
-  const aiAssistedCount = sessionsArray.filter(s => s.verdict === 'AI Assisted').length;
-
-  return (
-    <div className="max-w-screen-2xl mx-auto space-y-6">
-      {/* Stats Grid - TypingGuard Style */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
+  const totalSessions = sessions.length;
+  const humanCount = sessions.filter(s => s.verdict === 'Human').length;
+  const botCount = sessions.filter(s => s.verdict === 'Likely Bot').length;
+  const aiAssistedCount = sessions.filter(s => s.verdict === 'AI Assisted').length;
+  return <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Total Sessions</p>
-                <p className="text-3xl font-bold text-card-foreground">{totalSessions}</p>
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Users className="h-6 w-6 text-blue-600" />
               </div>
-              <div className="p-3 bg-primary rounded-xl">
-                <Users className="h-6 w-6 text-primary-foreground" />
+              <div>
+                <p className="text-sm text-gray-600">Total Sessions</p>
+                <p className="text-2xl font-bold">{totalSessions}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
+        <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Clean</p>
-                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{humanCount}</p>
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-green-100 rounded-full">
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
-              <div className="p-3 bg-emerald-500 rounded-xl">
-                <CheckCircle className="h-6 w-6 text-white" />
+              <div>
+                <p className="text-sm text-green-500">Human</p>
+                <p className="text-2xl font-bold">{humanCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
+        <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Suspicious</p>
-                <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{botCount}</p>
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-yellow-100 rounded-full">
+                <Clock className="h-6 w-6 text-yellow-600" />
               </div>
-              <div className="p-3 bg-yellow-500 rounded-xl">
-                <Clock className="h-6 w-6 text-white" />
+              <div>
+                <p className="text-sm text-yellow-100">Likely Bot</p>
+                <p className="text-2xl font-bold">{botCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
+        <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Plagiarised</p>
-                <p className="text-3xl font-bold text-red-600 dark:text-red-400">{aiAssistedCount}</p>
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-red-100 rounded-full">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
-              <div className="p-3 bg-red-500 rounded-xl">
-                <AlertTriangle className="h-6 w-6 text-white" />
+              <div>
+                <p className="text-sm text-red-500">AI Assisted</p>
+                <p className="text-2xl font-bold">{aiAssistedCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Session Management - TypingGuard Style */}
-      <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
+      {/* Main Dashboard */}
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-card-foreground">Session Management Dashboard</CardTitle>
-            <div className="flex gap-3">
-              <Button 
-                onClick={loadSessions} 
-                variant="outline" 
-                disabled={isLoading}
-                className="gap-2 rounded-xl border-border"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <CardTitle className="flex items-center space-x-2">
+              <Filter className="h-5 w-5" />
+              <span className="mx-[18px] my-0">Admin Dashboard</span>
+            </CardTitle>
+            <div className="flex space-x-2">
+              <Button onClick={loadSessions} variant="outline" disabled={isLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <Button 
-                onClick={exportData} 
-                variant="outline" 
-                disabled={filteredSessionsArray.length === 0}
-                className="gap-2 rounded-xl border-border"
-              >
-                <Download className="h-4 w-4" />
-                Export ({filteredSessionsArray.length})
+              <Button onClick={exportData} variant="outline" disabled={filteredSessions.length === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                Export ({filteredSessions.length})
               </Button>
             </div>
           </div>
         </CardHeader>
-        
-        <CardContent className="space-y-6">
-          {/* Filters - TypingGuard Style */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-xl border-input bg-background"
-              />
-            </div>
-
+        <CardContent>
+          {/* Filters */}
+          <div className="flex space-x-4 mb-6">
             <Select value={filterVerdict} onValueChange={setFilterVerdict}>
-              <SelectTrigger className="rounded-xl border-input bg-background">
+              <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by Verdict" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-border bg-popover">
+              <SelectContent>
                 <SelectItem value="all">All Verdicts</SelectItem>
-                <SelectItem value="Human">Clean</SelectItem>
-                <SelectItem value="Likely Bot">Suspicious</SelectItem>
-                <SelectItem value="AI Assisted">Plagiarised</SelectItem>
+                <SelectItem value="Human">Human</SelectItem>
+                <SelectItem value="Likely Bot">Likely Bot</SelectItem>
+                <SelectItem value="AI Assisted">AI Assisted</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={filterCandidateType} onValueChange={setFilterCandidateType}>
-              <SelectTrigger className="rounded-xl border-input bg-background">
-                <SelectValue placeholder="Filter by Type" />
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by Candidate Type" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-border bg-popover">
+              <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
                 <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
               </SelectContent>
             </Select>
-
-            <div className="flex items-center text-sm text-muted-foreground gap-2">
-              <Filter className="h-4 w-4" />
-              {filteredSessionsArray.length} of {sessionsArray.length} sessions
-            </div>
           </div>
 
-          <Separator className="bg-border" />
-
-          {/* Sessions List - TypingGuard Style */}
+          {/* Sessions List */}
           <div className="space-y-4">
-            {filteredSessionsArray.length === 0 && !isLoading && (
-              <div className="text-center py-12">
-                <Alert className="rounded-xl border-border bg-card">
-                  <AlertDescription className="text-card-foreground">
-                    {sessionsArray.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
+            {filteredSessions.length === 0 && !isLoading && <div className="text-center py-8 text-gray-500">
+                {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
+              </div>}
 
-            {filteredSessionsArray.map((session) => {
-              const detectionFlags = Array.isArray(session.detectionFlags) ? session.detectionFlags : [];
-              const typingEvents = Array.isArray(session.typingEvents) ? session.typingEvents : [];
-              const code = session.code || '';
-              const isPinned = pinnedSessions.has(session.id);
-              
-              return (
-                <Card key={session.id} className={`typing-guard-shadow transition-all duration-300 hover:typing-guard-shadow-lg border border-border rounded-2xl bg-card ${isPinned ? 'ring-2 ring-primary' : ''}`}>
-                  <CardContent className="p-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                      {/* Session Info - TypingGuard Style */}
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-3">
-                              <h3 className="text-lg font-semibold text-card-foreground">{session.candidateName}</h3>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => togglePin(session.id)}
-                                className={`p-1 h-7 w-7 rounded-lg ${isPinned ? 'text-primary' : 'text-muted-foreground'}`}
-                              >
-                                <Pin className={`h-4 w-4 ${isPinned ? 'fill-current' : ''}`} />
-                              </Button>
-                            </div>
-                            <Badge variant="secondary" className="text-xs rounded-lg bg-muted text-muted-foreground">
-                              {session.candidateType}
-                            </Badge>
-                          </div>
-                        </div>
-                        <Badge variant={getVerdictVariant(session.verdict)} className="gap-1 rounded-lg">
+            {filteredSessions.map(session => <Card key={session.id} className="border-l-4 border-l-gray-200">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    {/* Basic Info */}
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="text-lg font-semibold">{session.candidateName}</h3>
+                        <Badge className="text-xs">{session.candidateType}</Badge>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={getVerdictColor(session.verdict)}>
                           {getVerdictIcon(session.verdict)}
-                          <span>{session.verdict}</span>
+                          <span className="ml-1">{session.verdict}</span>
                         </Badge>
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <p>Started: {new Date(session.timestamp).toLocaleString()}</p>
-                          <p>Duration: {formatDuration(session.duration)}</p>
-                        </div>
                       </div>
+                      <p className="text-sm text-gray-600">
+                        Started: {new Date(session.timestamp).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Duration: {formatDuration(session.duration)}
+                      </p>
+                    </div>
 
-                      {/* Typing Stats - TypingGuard Style */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-card-foreground">Typing Analysis</h4>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="bg-muted rounded-xl p-3">
-                            <span className="text-muted-foreground block text-xs">WPM</span>
-                            <span className="font-semibold text-card-foreground">{session.typingStats?.totalWPM || 'N/A'}</span>
-                          </div>
-                          <div className="bg-muted rounded-xl p-3">
-                            <span className="text-muted-foreground block text-xs">Time</span>
-                            <span className="font-semibold text-card-foreground">{session.typingStats?.totalTime || 'N/A'}m</span>
-                          </div>
-                          <div className="bg-muted rounded-xl p-3">
-                            <span className="text-muted-foreground block text-xs">Lines</span>
-                            <span className="font-semibold text-card-foreground">{session.typingStats?.linesOfCode || 'N/A'}</span>
-                          </div>
-                          <div className="bg-muted rounded-xl p-3">
-                            <span className="text-muted-foreground block text-xs">Bursts</span>
-                            <span className="font-semibold text-card-foreground">{session.typingStats?.typingBursts || 'N/A'}</span>
-                          </div>
+                    {/* Typing Stats */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-gray-900">Typing Stats</h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-600">Total WPM:</span>
+                          <span className="ml-2 font-semibold">{session.typingStats.totalWPM}</span>
                         </div>
-                      </div>
-
-                      {/* Code Analysis - TypingGuard Style */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium text-card-foreground">Code Analysis</h4>
-                        <div className="text-sm space-y-2">
-                          <div className="bg-muted rounded-xl p-3">
-                            <span className="text-muted-foreground block text-xs">Characters</span>
-                            <span className="font-semibold text-card-foreground">{code.length}</span>
-                          </div>
-                          <div className="bg-muted rounded-xl p-3">
-                            <span className="text-muted-foreground block text-xs">Events</span>
-                            <span className="font-semibold text-card-foreground">{typingEvents.length}</span>
-                          </div>
+                        <div>
+                          <span className="text-gray-600">Total Time:</span>
+                          <span className="ml-2 font-semibold">{session.typingStats.totalTime}m</span>
                         </div>
-                      </div>
-
-                      {/* Detection Flags - TypingGuard Style */}
-                      <div className="lg:col-span-2 space-y-3">
-                        <h4 className="font-medium text-card-foreground">Detection Results ({detectionFlags.length})</h4>
-                        {detectionFlags.length === 0 ? (
-                          <Alert className="rounded-xl border-border bg-card">
-                            <CheckCircle className="h-5 w-5" />
-                            <AlertDescription className="font-medium text-card-foreground">
-                              No suspicious activities detected
-                            </AlertDescription>
-                          </Alert>
-                        ) : (
-                          <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
-                            {detectionFlags.map((flag, index) => (
-                              <Alert key={index} variant="destructive" className="rounded-xl">
-                                <Flag className="h-4 w-4" />
-                                <AlertDescription className="font-medium">
-                                  {flag}
-                                </AlertDescription>
-                              </Alert>
-                            ))}
-                          </div>
-                        )}
+                        <div>
+                          <span className="text-gray-600">Lines of Code:</span>
+                          <span className="ml-2 font-semibold">{session.typingStats.linesOfCode}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Typing Bursts:</span>
+                          <span className="ml-2 font-semibold">{session.typingStats.typingBursts}</span>
+                        </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+
+                    {/* Code Analysis */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-gray-900">Code Analysis</h4>
+                      <div className="text-sm space-y-1">
+                        <div>
+                          <span className="text-gray-600">Characters:</span>
+                          <span className="ml-2 font-semibold">{session.code.length}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Typing Events:</span>
+                          <span className="ml-2 font-semibold">{session.typingEvents.length}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Detection Flags */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-gray-900">Detection Flags ({session.detectionFlags.length})</h4>
+                      {session.detectionFlags.length === 0 ? <p className="text-sm text-green-600">No suspicious activities detected</p> : <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {session.detectionFlags.map((flag, index) => <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full">
+                              {flag}
+                            </Badge>)}
+                        </div>}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>)}
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default AdminDashboard;
