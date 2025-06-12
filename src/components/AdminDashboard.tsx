@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,21 +7,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw } from 'lucide-react';
 import { apiService, SessionData } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
+
 const AdminDashboard = () => {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<SessionData[]>([]);
   const [filterVerdict, setFilterVerdict] = useState<string>('all');
   const [filterCandidateType, setFilterCandidateType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+
   useEffect(() => {
     loadSessions();
   }, []);
+
   useEffect(() => {
     applyFilters();
   }, [sessions, filterVerdict, filterCandidateType]);
+
   const loadSessions = async () => {
     setIsLoading(true);
     try {
@@ -40,6 +43,7 @@ const AdminDashboard = () => {
       setIsLoading(false);
     }
   };
+
   const applyFilters = () => {
     let filtered = sessions;
     if (filterVerdict !== 'all') {
@@ -50,6 +54,7 @@ const AdminDashboard = () => {
     }
     setFilteredSessions(filtered);
   };
+
   const exportData = () => {
     try {
       apiService.exportSessions(filteredSessions);
@@ -65,6 +70,7 @@ const AdminDashboard = () => {
       });
     }
   };
+
   const getVerdictColor = (verdict: string) => {
     switch (verdict) {
       case 'Human':
@@ -77,6 +83,7 @@ const AdminDashboard = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
   const getVerdictIcon = (verdict: string) => {
     switch (verdict) {
       case 'Human':
@@ -89,16 +96,20 @@ const AdminDashboard = () => {
         return <CheckCircle className="h-4 w-4" />;
     }
   };
+
   const formatDuration = (milliseconds: number) => {
     const minutes = Math.floor(milliseconds / 60000);
-    const seconds = Math.floor(milliseconds % 60000 / 1000);
+    const seconds = Math.floor((milliseconds % 60000) / 1000);
     return `${minutes}m ${seconds}s`;
   };
+
   const totalSessions = sessions.length;
   const humanCount = sessions.filter(s => s.verdict === 'Human').length;
   const botCount = sessions.filter(s => s.verdict === 'Likely Bot').length;
   const aiAssistedCount = sessions.filter(s => s.verdict === 'AI Assisted').length;
-  return <div className="space-y-6">
+
+  return (
+    <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -136,7 +147,7 @@ const AdminDashboard = () => {
                 <Clock className="h-6 w-6 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-yellow-100">Likely Bot</p>
+                <p className="text-sm text-yellow-600">Likely Bot</p>
                 <p className="text-2xl font-bold">{botCount}</p>
               </div>
             </div>
@@ -207,11 +218,14 @@ const AdminDashboard = () => {
 
           {/* Sessions List */}
           <div className="space-y-4">
-            {filteredSessions.length === 0 && !isLoading && <div className="text-center py-8 text-gray-500">
+            {filteredSessions.length === 0 && !isLoading && (
+              <div className="text-center py-8 text-gray-500">
                 {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
-              </div>}
+              </div>
+            )}
 
-            {filteredSessions.map(session => <Card key={session.id} className="border-l-4 border-l-gray-200">
+            {filteredSessions.map(session => (
+              <Card key={session.id} className="border-l-4 border-l-gray-200">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Basic Info */}
@@ -240,19 +254,19 @@ const AdminDashboard = () => {
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <span className="text-gray-600">Total WPM:</span>
-                          <span className="ml-2 font-semibold">{session.typingStats.totalWPM}</span>
+                          <span className="ml-2 font-semibold">{session.typingStats?.totalWPM || 0}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Total Time:</span>
-                          <span className="ml-2 font-semibold">{session.typingStats.totalTime}m</span>
+                          <span className="ml-2 font-semibold">{session.typingStats?.totalTime || 0}m</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Lines of Code:</span>
-                          <span className="ml-2 font-semibold">{session.typingStats.linesOfCode}</span>
+                          <span className="ml-2 font-semibold">{session.typingStats?.linesOfCode || 0}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Typing Bursts:</span>
-                          <span className="ml-2 font-semibold">{session.typingStats.typingBursts}</span>
+                          <span className="ml-2 font-semibold">{session.typingStats?.typingBursts || 0}</span>
                         </div>
                       </div>
                     </div>
@@ -263,30 +277,39 @@ const AdminDashboard = () => {
                       <div className="text-sm space-y-1">
                         <div>
                           <span className="text-gray-600">Characters:</span>
-                          <span className="ml-2 font-semibold">{session.code.length}</span>
+                          <span className="ml-2 font-semibold">{session.code?.length || 0}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Typing Events:</span>
-                          <span className="ml-2 font-semibold">{session.typingEvents.length}</span>
+                          <span className="ml-2 font-semibold">{session.typingEvents?.length || 0}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Detection Flags */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Detection Flags ({session.detectionFlags.length})</h4>
-                      {session.detectionFlags.length === 0 ? <p className="text-sm text-green-600">No suspicious activities detected</p> : <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {session.detectionFlags.map((flag, index) => <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full">
+                      <h4 className="font-medium text-gray-900">Detection Flags ({session.detectionFlags?.length || 0})</h4>
+                      {(!session.detectionFlags || session.detectionFlags.length === 0) ? (
+                        <p className="text-sm text-green-600">No suspicious activities detected</p>
+                      ) : (
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {session.detectionFlags.map((flag, index) => (
+                            <Badge key={index} variant="destructive" className="text-xs mr-1 mb-1 block w-full">
                               {flag}
-                            </Badge>)}
-                        </div>}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
-              </Card>)}
+              </Card>
+            ))}
           </div>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
+
 export default AdminDashboard;
