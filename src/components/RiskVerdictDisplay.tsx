@@ -63,23 +63,23 @@ const RiskVerdictDisplay: React.FC<RiskVerdictDisplayProps> = ({
   };
 
   return (
-    <Card className="shadow-lg">
+    <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-3">
-          <div className="p-2 bg-primary rounded-lg">
+          <div className="p-2 bg-primary rounded-xl">
             <Shield className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span>Detection Analysis Result</span>
+          <span className="text-card-foreground">Detection Analysis Result</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Badge variant={getVerdictVariant(detectionResult.verdict)} className="gap-2 px-4 py-2">
+            <Badge variant={getVerdictVariant(detectionResult.verdict)} className="gap-2 px-4 py-2 rounded-xl">
               {getVerdictIcon(detectionResult.verdict)}
               <span>{getVerdictLabel(detectionResult.verdict)}</span>
             </Badge>
-            <Badge variant="outline" className="px-4 py-2">
+            <Badge variant="outline" className="px-4 py-2 rounded-xl border-border">
               Confidence: {detectionResult.confidence}
             </Badge>
           </div>
@@ -87,10 +87,10 @@ const RiskVerdictDisplay: React.FC<RiskVerdictDisplayProps> = ({
 
         {detectionResult.suspiciousActivities.length > 0 ? (
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold">Suspicious Activities Detected:</h4>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
+            <h4 className="text-sm font-semibold text-card-foreground">Suspicious Activities Detected:</h4>
+            <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
               {detectionResult.suspiciousActivities.map((activity, index) => (
-                <Alert key={index} variant="destructive">
+                <Alert key={index} variant="destructive" className="rounded-xl">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription className="font-medium">
                     • {activity}
@@ -100,9 +100,9 @@ const RiskVerdictDisplay: React.FC<RiskVerdictDisplayProps> = ({
             </div>
           </div>
         ) : (
-          <Alert>
+          <Alert className="rounded-xl border-border bg-card">
             <CheckCircle className="h-5 w-5" />
-            <AlertDescription className="font-medium">
+            <AlertDescription className="font-medium text-card-foreground">
               No suspicious activities detected - appears to be normal human behavior.
             </AlertDescription>
           </Alert>

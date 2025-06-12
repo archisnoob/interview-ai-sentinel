@@ -7,67 +7,67 @@
 
 @layer base {
   :root {
-    /* Modern Professional Light Theme - Clean Whites & Soft Grays */
-    --background: 249 250 251; /* #F9FAFB */
-    --foreground: 15 23 42; /* #0F172A */
-    --card: 255 255 255; /* #FFFFFF */
-    --card-foreground: 15 23 42; /* #0F172A */
-    --popover: 255 255 255; /* #FFFFFF */
-    --popover-foreground: 15 23 42; /* #0F172A */
+    /* TypingGuard Light Theme */
+    --background: 255 255 255; /* #ffffff */
+    --foreground: 15 23 42; /* #0f172a */
+    --card: 241 245 249; /* #f1f5f9 */
+    --card-foreground: 15 23 42; /* #0f172a */
+    --popover: 241 245 249; /* #f1f5f9 */
+    --popover-foreground: 15 23 42; /* #0f172a */
     
-    /* Accent Colors - Professional Indigo */
-    --primary: 99 102 241; /* #6366F1 */
-    --primary-foreground: 255 255 255; /* #FFFFFF */
-    --secondary: 241 245 249; /* #F1F5F9 */
-    --secondary-foreground: 15 23 42; /* #0F172A */
+    /* Accent Colors - TypingGuard Style */
+    --primary: 5 150 105; /* #059669 - emerald-600 */
+    --primary-foreground: 255 255 255; /* #ffffff */
+    --secondary: 226 232 240; /* #e2e8f0 */
+    --secondary-foreground: 15 23 42; /* #0f172a */
     
-    /* UI Elements - Soft Grays */
-    --muted: 248 250 252; /* #F8FAFC */
-    --muted-foreground: 100 116 139; /* #64748B */
-    --accent: 241 245 249; /* #F1F5F9 */
-    --accent-foreground: 15 23 42; /* #0F172A */
+    /* UI Elements */
+    --muted: 241 245 249; /* #f1f5f9 */
+    --muted-foreground: 100 116 139; /* #64748b */
+    --accent: 52 211 153; /* #34d399 - emerald-400 */
+    --accent-foreground: 15 23 42; /* #0f172a */
     
     /* States */
-    --destructive: 239 68 68; /* #EF4444 */
-    --destructive-foreground: 255 255 255; /* #FFFFFF */
+    --destructive: 239 68 68; /* #ef4444 */
+    --destructive-foreground: 255 255 255; /* #ffffff */
     
-    /* Borders - Subtle Grays */
-    --border: 226 232 240; /* #E2E8F0 */
-    --input: 226 232 240; /* #E2E8F0 */
-    --ring: 99 102 241; /* #6366F1 */
+    /* Borders - TypingGuard Style */
+    --border: 226 232 240; /* #e2e8f0 */
+    --input: 226 232 240; /* #e2e8f0 */
+    --ring: 5 150 105; /* #059669 */
     
-    --radius: 0.75rem;
+    --radius: 1rem; /* rounded-2xl */
   }
 
   [data-theme="dark"] {
-    /* Modern Professional Dark Theme - Deep Slate with High Contrast */
-    --background: 15 23 42; /* #0F172A */
-    --foreground: 248 250 252; /* #F8FAFC */
-    --card: 30 41 59; /* #1E293B */
-    --card-foreground: 248 250 252; /* #F8FAFC */
-    --popover: 30 41 59; /* #1E293B */
-    --popover-foreground: 248 250 252; /* #F8FAFC */
+    /* TypingGuard Dark Theme - Exact Colors */
+    --background: 15 23 42; /* #0f172a */
+    --foreground: 241 245 249; /* #f1f5f9 */
+    --card: 30 41 59; /* #1e293b */
+    --card-foreground: 241 245 249; /* #f1f5f9 */
+    --popover: 30 41 59; /* #1e293b */
+    --popover-foreground: 241 245 249; /* #f1f5f9 */
     
-    /* Accent Colors - Bright Indigo for Dark Mode */
-    --primary: 99 102 241; /* #6366F1 */
-    --primary-foreground: 255 255 255; /* #FFFFFF */
+    /* Accent Colors - TypingGuard Dark Style */
+    --primary: 52 211 153; /* #34d399 - emerald-400 */
+    --primary-foreground: 15 23 42; /* #0f172a */
     --secondary: 51 65 85; /* #334155 */
-    --secondary-foreground: 248 250 252; /* #F8FAFC */
+    --secondary-foreground: 241 245 249; /* #f1f5f9 */
     
-    /* UI Elements - Dark Grays */
+    /* UI Elements */
     --muted: 51 65 85; /* #334155 */
-    --muted-foreground: 148 163 184; /* #94A3B8 */
-    --accent: 51 65 85; /* #334155 */
-    --accent-foreground: 248 250 252; /* #F8FAFC */
+    --muted-foreground: 148 163 184; /* #94a3b8 */
+    --accent: 52 211 153; /* #34d399 - emerald-400 */
+    --accent-foreground: 15 23 42; /* #0f172a */
     
     /* States */
-    --destructive: 239 68 68; /* #EF4444 */
-    --destructive-foreground: 255 255 255; /* #FFFFFF */
+    --destructive: 239 68 68; /* #ef4444 */
+    --destructive-foreground: 255 255 255; /* #ffffff */
     
-    /* Borders - Dark Slate */
-    --border: 71 85 105; /* #475569 */
-    --input: 71 85 105; /* #475569 */
-    --ring: 99 102 241; /* #6366F1 */
+    /* Borders - TypingGuard Dark Style */
+    --border: 51 65 85; /* #334155 */
+    --input: 51 65 85; /* #334155 */
+    --ring: 52 211 153; /* #34d399 */
   }
 
   /* Smooth transitions for theme switching */
@@ -101,7 +101,7 @@
   *:focus-visible {
     outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 1rem;
   }
 
   /* High contrast focus indicators */
@@ -116,36 +116,36 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
       --background: 15 23 42;
-      --foreground: 248 250 252;
+      --foreground: 241 245 249;
       --card: 30 41 59;
-      --card-foreground: 248 250 252;
+      --card-foreground: 241 245 249;
       --popover: 30 41 59;
-      --popover-foreground: 248 250 252;
-      --primary: 99 102 241;
-      --primary-foreground: 255 255 255;
+      --popover-foreground: 241 245 249;
+      --primary: 52 211 153;
+      --primary-foreground: 15 23 42;
       --secondary: 51 65 85;
-      --secondary-foreground: 248 250 252;
+      --secondary-foreground: 241 245 249;
       --muted: 51 65 85;
       --muted-foreground: 148 163 184;
-      --accent: 51 65 85;
-      --accent-foreground: 248 250 252;
+      --accent: 52 211 153;
+      --accent-foreground: 15 23 42;
       --destructive: 239 68 68;
       --destructive-foreground: 255 255 255;
-      --border: 71 85 105;
-      --input: 71 85 105;
-      --ring: 99 102 241;
+      --border: 51 65 85;
+      --input: 51 65 85;
+      --ring: 52 211 153;
     }
   }
 }
 
-/* Enhanced animations and hover effects */
+/* TypingGuard-style animations and hover effects */
 @layer utilities {
   .hover-lift {
     @apply transition-transform duration-200 hover:scale-[1.02] hover:-translate-y-1;
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)) 60%);
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -156,43 +156,43 @@
     -webkit-backdrop-filter: blur(10px);
   }
 
-  .modern-shadow {
+  .typing-guard-shadow {
     box-shadow: 
-      0 1px 3px 0 rgba(0, 0, 0, 0.1),
-      0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 
-  .modern-shadow-lg {
+  .typing-guard-shadow-lg {
     box-shadow: 
-      0 10px 15px -3px rgba(0, 0, 0, 0.1),
-      0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 
-  [data-theme="dark"] .modern-shadow {
+  [data-theme="dark"] .typing-guard-shadow {
     box-shadow: 
-      0 1px 3px 0 rgba(0, 0, 0, 0.3),
-      0 1px 2px 0 rgba(0, 0, 0, 0.2);
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 2px 4px -1px rgba(0, 0, 0, 0.2);
   }
 
-  [data-theme="dark"] .modern-shadow-lg {
+  [data-theme="dark"] .typing-guard-shadow-lg {
     box-shadow: 
-      0 10px 15px -3px rgba(0, 0, 0, 0.4),
-      0 4px 6px -2px rgba(0, 0, 0, 0.3);
+      0 20px 25px -5px rgba(0, 0, 0, 0.4),
+      0 10px 10px -5px rgba(0, 0, 0, 0.3);
   }
 
-  /* Scrollbar styling */
+  /* Custom scrollbar styling - TypingGuard style */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
     background: hsl(var(--muted));
-    border-radius: 4px;
+    border-radius: 1rem;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground));
-    border-radius: 4px;
+    border-radius: 1rem;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {

@@ -190,26 +190,26 @@ const CodingInterface = () => {
   };
 
   return (
-    <div className="max-w-screen-2xl mx-auto p-6 space-y-6">
+    <div className="max-w-screen-2xl mx-auto space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Coding Area */}
+        {/* Main Coding Area - TypingGuard Style */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="shadow-lg">
+          <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-3">
-                  <div className="p-2 bg-primary rounded-lg">
+                  <div className="p-2 bg-primary rounded-xl">
                     <Code className="h-5 w-5 text-primary-foreground" />
                   </div>
-                  <span>Interview Platform</span>
+                  <span className="text-card-foreground">Interview Platform</span>
                 </CardTitle>
                 <div className="flex items-center gap-3">
-                  <Badge variant={getStatusVariant()} className="gap-1">
+                  <Badge variant={getStatusVariant()} className="gap-1 rounded-xl">
                     {getStatusIcon()}
                     {getStatusText()}
                   </Badge>
                   {sessionActive && liveDetectionFlags.length > 0 && (
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="rounded-xl border-border">
                       {liveDetectionFlags.length} flags
                     </Badge>
                   )}
@@ -217,49 +217,49 @@ const CodingInterface = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Session Controls */}
+              {/* Session Controls - TypingGuard Style */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input 
                   type="text" 
                   placeholder="Candidate Name" 
                   value={candidateName} 
                   onChange={e => setCandidateName(e.target.value)} 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" 
+                  className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" 
                   disabled={sessionActive} 
                 />
                 
                 <Select value={candidateType} onValueChange={(value: 'Freshman Intern' | 'Pro/Competitive Coder') => setCandidateType(value)} disabled={sessionActive}>
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-xl border-input bg-background">
                     <User className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Select Candidate Type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl border-border bg-popover">
                     <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
                     <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
                   </SelectContent>
                 </Select>
                 
                 {!sessionActive ? (
-                  <Button onClick={startSession} className="gap-2">
+                  <Button onClick={startSession} className="gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground">
                     <Shield className="h-4 w-4" />
                     Start Session
                   </Button>
                 ) : (
-                  <Button onClick={endSession} variant="destructive" className="gap-2">
+                  <Button onClick={endSession} variant="destructive" className="gap-2 rounded-xl">
                     <Shield className="h-4 w-4" />
                     End Session
                   </Button>
                 )}
               </div>
 
-              {/* Profile Information */}
+              {/* Profile Information - TypingGuard Style */}
               {!sessionActive && (
-                <Alert>
+                <Alert className="rounded-xl border-border bg-card">
                   <Code className="h-4 w-4" />
                   <AlertDescription>
                     <div className="space-y-2">
-                      <div className="font-semibold">Selected Profile: {candidateType}</div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="font-semibold text-card-foreground">Selected Profile: {candidateType}</div>
+                      <div className="grid grid-cols-3 gap-4 text-sm text-muted-foreground">
                         <div>Initial Delay: &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s</div>
                         <div>Idle Pause: &lt;{candidateType === 'Freshman Intern' ? '40' : '25'}s</div>
                         <div>Edit Delay: &lt;{candidateType === 'Freshman Intern' ? '60' : '30'}s</div>
@@ -269,11 +269,11 @@ const CodingInterface = () => {
                 </Alert>
               )}
 
-              <Separator />
+              <Separator className="bg-border" />
               
-              {/* Problem Statement */}
+              {/* Problem Statement - TypingGuard Style */}
               <div className="space-y-3">
-                <label className="text-sm font-semibold">
+                <label className="text-sm font-semibold text-card-foreground">
                   Problem: Implement a function to reverse a string efficiently
                 </label>
                 <Textarea 
@@ -283,18 +283,18 @@ const CodingInterface = () => {
                   onChange={e => setCode(e.target.value)} 
                   onKeyDown={handleKeyDown} 
                   onPaste={handlePaste} 
-                  className="min-h-96 font-mono text-sm resize-none" 
+                  className="min-h-96 font-mono text-sm resize-none rounded-xl border-input bg-background text-foreground" 
                   disabled={!sessionActive} 
                 />
               </div>
 
-              {/* Live Detection Flags */}
+              {/* Live Detection Flags - TypingGuard Style */}
               {sessionActive && liveDetectionFlags.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-destructive">Live Detection Flags:</h4>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
                     {liveDetectionFlags.slice(-5).map((flag, index) => (
-                      <Alert key={index} variant="destructive">
+                      <Alert key={index} variant="destructive" className="rounded-xl">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertDescription className="text-sm font-medium">
                           {flag}
@@ -305,13 +305,13 @@ const CodingInterface = () => {
                 </div>
               )}
               
-              {/* Action Buttons */}
+              {/* Action Buttons - TypingGuard Style */}
               <div className="flex gap-3">
-                <Button onClick={runCode} disabled={!sessionActive} className="gap-2">
+                <Button onClick={runCode} disabled={!sessionActive} className="gap-2 rounded-xl bg-primary hover:bg-primary/90">
                   <Play className="h-4 w-4" />
                   Run Code
                 </Button>
-                <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive} className="gap-2">
+                <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive} className="gap-2 rounded-xl border-border">
                   <Save className="h-4 w-4" />
                   Save
                 </Button>
@@ -326,7 +326,7 @@ const CodingInterface = () => {
           />
         </div>
 
-        {/* Monitoring Panel */}
+        {/* Monitoring Panel - TypingGuard Style */}
         <div className="space-y-6">
           <TypingAnalyzer 
             typingEvents={typingEvents} 

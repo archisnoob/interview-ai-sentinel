@@ -152,59 +152,59 @@ const AdminDashboard = () => {
   const aiAssistedCount = sessionsArray.filter(s => s.verdict === 'AI Assisted').length;
 
   return (
-    <div className="max-w-screen-2xl mx-auto p-6 space-y-8">
-      {/* Stats Grid */}
+    <div className="max-w-screen-2xl mx-auto space-y-6">
+      {/* Stats Grid - TypingGuard Style */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="shadow-lg">
+        <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Total Sessions</p>
-                <p className="text-3xl font-bold">{totalSessions}</p>
+                <p className="text-3xl font-bold text-card-foreground">{totalSessions}</p>
               </div>
-              <div className="p-3 bg-primary rounded-lg">
+              <div className="p-3 bg-primary rounded-xl">
                 <Users className="h-6 w-6 text-primary-foreground" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg">
+        <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Clean</p>
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">{humanCount}</p>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{humanCount}</p>
               </div>
-              <div className="p-3 bg-green-500 rounded-lg">
+              <div className="p-3 bg-emerald-500 rounded-xl">
                 <CheckCircle className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg">
+        <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Suspicious</p>
                 <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{botCount}</p>
               </div>
-              <div className="p-3 bg-yellow-500 rounded-lg">
+              <div className="p-3 bg-yellow-500 rounded-xl">
                 <Clock className="h-6 w-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg">
+        <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Plagiarised</p>
                 <p className="text-3xl font-bold text-red-600 dark:text-red-400">{aiAssistedCount}</p>
               </div>
-              <div className="p-3 bg-red-500 rounded-lg">
+              <div className="p-3 bg-red-500 rounded-xl">
                 <AlertTriangle className="h-6 w-6 text-white" />
               </div>
             </div>
@@ -212,17 +212,17 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      {/* Session Management */}
-      <Card className="shadow-lg">
+      {/* Session Management - TypingGuard Style */}
+      <Card className="typing-guard-shadow-lg border border-border rounded-2xl bg-card">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Session Management Dashboard</CardTitle>
+            <CardTitle className="text-card-foreground">Session Management Dashboard</CardTitle>
             <div className="flex gap-3">
               <Button 
                 onClick={loadSessions} 
                 variant="outline" 
                 disabled={isLoading}
-                className="gap-2"
+                className="gap-2 rounded-xl border-border"
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -231,7 +231,7 @@ const AdminDashboard = () => {
                 onClick={exportData} 
                 variant="outline" 
                 disabled={filteredSessionsArray.length === 0}
-                className="gap-2"
+                className="gap-2 rounded-xl border-border"
               >
                 <Download className="h-4 w-4" />
                 Export ({filteredSessionsArray.length})
@@ -241,7 +241,7 @@ const AdminDashboard = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
-          {/* Filters */}
+          {/* Filters - TypingGuard Style */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -249,15 +249,15 @@ const AdminDashboard = () => {
                 placeholder="Search by name or ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 rounded-xl border-input bg-background"
               />
             </div>
 
             <Select value={filterVerdict} onValueChange={setFilterVerdict}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-xl border-input bg-background">
                 <SelectValue placeholder="Filter by Verdict" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl border-border bg-popover">
                 <SelectItem value="all">All Verdicts</SelectItem>
                 <SelectItem value="Human">Clean</SelectItem>
                 <SelectItem value="Likely Bot">Suspicious</SelectItem>
@@ -266,10 +266,10 @@ const AdminDashboard = () => {
             </Select>
 
             <Select value={filterCandidateType} onValueChange={setFilterCandidateType}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-xl border-input bg-background">
                 <SelectValue placeholder="Filter by Type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl border-border bg-popover">
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="Freshman Intern">Freshman Intern</SelectItem>
                 <SelectItem value="Pro/Competitive Coder">Pro/Competitive Coder</SelectItem>
@@ -282,14 +282,14 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <Separator />
+          <Separator className="bg-border" />
 
-          {/* Sessions List */}
+          {/* Sessions List - TypingGuard Style */}
           <div className="space-y-4">
             {filteredSessionsArray.length === 0 && !isLoading && (
               <div className="text-center py-12">
-                <Alert>
-                  <AlertDescription>
+                <Alert className="rounded-xl border-border bg-card">
+                  <AlertDescription className="text-card-foreground">
                     {sessionsArray.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
                   </AlertDescription>
                 </Alert>
@@ -303,30 +303,30 @@ const AdminDashboard = () => {
               const isPinned = pinnedSessions.has(session.id);
               
               return (
-                <Card key={session.id} className={`shadow-md transition-all duration-300 hover:shadow-lg ${isPinned ? 'ring-2 ring-primary' : ''}`}>
+                <Card key={session.id} className={`typing-guard-shadow transition-all duration-300 hover:typing-guard-shadow-lg border border-border rounded-2xl bg-card ${isPinned ? 'ring-2 ring-primary' : ''}`}>
                   <CardContent className="p-6">
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                      {/* Session Info */}
+                      {/* Session Info - TypingGuard Style */}
                       <div className="space-y-3">
                         <div className="flex items-start justify-between">
                           <div className="space-y-2">
                             <div className="flex items-center gap-3">
-                              <h3 className="text-lg font-semibold">{session.candidateName}</h3>
+                              <h3 className="text-lg font-semibold text-card-foreground">{session.candidateName}</h3>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => togglePin(session.id)}
-                                className={`p-1 h-7 w-7 ${isPinned ? 'text-primary' : 'text-muted-foreground'}`}
+                                className={`p-1 h-7 w-7 rounded-lg ${isPinned ? 'text-primary' : 'text-muted-foreground'}`}
                               >
                                 <Pin className={`h-4 w-4 ${isPinned ? 'fill-current' : ''}`} />
                               </Button>
                             </div>
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="secondary" className="text-xs rounded-lg bg-muted text-muted-foreground">
                               {session.candidateType}
                             </Badge>
                           </div>
                         </div>
-                        <Badge variant={getVerdictVariant(session.verdict)} className="gap-1">
+                        <Badge variant={getVerdictVariant(session.verdict)} className="gap-1 rounded-lg">
                           {getVerdictIcon(session.verdict)}
                           <span>{session.verdict}</span>
                         </Badge>
@@ -336,58 +336,58 @@ const AdminDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Typing Stats */}
+                      {/* Typing Stats - TypingGuard Style */}
                       <div className="space-y-3">
-                        <h4 className="font-medium">Typing Analysis</h4>
+                        <h4 className="font-medium text-card-foreground">Typing Analysis</h4>
                         <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="bg-muted rounded-lg p-3">
+                          <div className="bg-muted rounded-xl p-3">
                             <span className="text-muted-foreground block text-xs">WPM</span>
-                            <span className="font-semibold">{session.typingStats?.totalWPM || 'N/A'}</span>
+                            <span className="font-semibold text-card-foreground">{session.typingStats?.totalWPM || 'N/A'}</span>
                           </div>
-                          <div className="bg-muted rounded-lg p-3">
+                          <div className="bg-muted rounded-xl p-3">
                             <span className="text-muted-foreground block text-xs">Time</span>
-                            <span className="font-semibold">{session.typingStats?.totalTime || 'N/A'}m</span>
+                            <span className="font-semibold text-card-foreground">{session.typingStats?.totalTime || 'N/A'}m</span>
                           </div>
-                          <div className="bg-muted rounded-lg p-3">
+                          <div className="bg-muted rounded-xl p-3">
                             <span className="text-muted-foreground block text-xs">Lines</span>
-                            <span className="font-semibold">{session.typingStats?.linesOfCode || 'N/A'}</span>
+                            <span className="font-semibold text-card-foreground">{session.typingStats?.linesOfCode || 'N/A'}</span>
                           </div>
-                          <div className="bg-muted rounded-lg p-3">
+                          <div className="bg-muted rounded-xl p-3">
                             <span className="text-muted-foreground block text-xs">Bursts</span>
-                            <span className="font-semibold">{session.typingStats?.typingBursts || 'N/A'}</span>
+                            <span className="font-semibold text-card-foreground">{session.typingStats?.typingBursts || 'N/A'}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Code Analysis */}
+                      {/* Code Analysis - TypingGuard Style */}
                       <div className="space-y-3">
-                        <h4 className="font-medium">Code Analysis</h4>
+                        <h4 className="font-medium text-card-foreground">Code Analysis</h4>
                         <div className="text-sm space-y-2">
-                          <div className="bg-muted rounded-lg p-3">
+                          <div className="bg-muted rounded-xl p-3">
                             <span className="text-muted-foreground block text-xs">Characters</span>
-                            <span className="font-semibold">{code.length}</span>
+                            <span className="font-semibold text-card-foreground">{code.length}</span>
                           </div>
-                          <div className="bg-muted rounded-lg p-3">
+                          <div className="bg-muted rounded-xl p-3">
                             <span className="text-muted-foreground block text-xs">Events</span>
-                            <span className="font-semibold">{typingEvents.length}</span>
+                            <span className="font-semibold text-card-foreground">{typingEvents.length}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Detection Flags */}
+                      {/* Detection Flags - TypingGuard Style */}
                       <div className="lg:col-span-2 space-y-3">
-                        <h4 className="font-medium">Detection Results ({detectionFlags.length})</h4>
+                        <h4 className="font-medium text-card-foreground">Detection Results ({detectionFlags.length})</h4>
                         {detectionFlags.length === 0 ? (
-                          <Alert>
+                          <Alert className="rounded-xl border-border bg-card">
                             <CheckCircle className="h-5 w-5" />
-                            <AlertDescription className="font-medium">
+                            <AlertDescription className="font-medium text-card-foreground">
                               No suspicious activities detected
                             </AlertDescription>
                           </Alert>
                         ) : (
-                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                          <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
                             {detectionFlags.map((flag, index) => (
-                              <Alert key={index} variant="destructive">
+                              <Alert key={index} variant="destructive" className="rounded-xl">
                                 <Flag className="h-4 w-4" />
                                 <AlertDescription className="font-medium">
                                   {flag}
