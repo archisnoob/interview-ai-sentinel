@@ -61,9 +61,9 @@ class ApiService {
     return this.sessions.map(s => ({
         ...s, // Spread existing properties
         // Provide default for finalExtensionStatus if not present (for old data)
-        finalExtensionStatus: s.finalExtensionStatus || 'Not Required',
+        finalExtensionStatus: s.finalExtensionStatus || 'Not Required', 
         // Provide default for config if not present
-        config: s.config || { enableExtensionCheck: false, profile: "Freshman Intern" }
+        config: s.config || { enableExtensionCheck: false, profile: "Freshman Intern" } 
     }));
   }
 
@@ -111,3 +111,4 @@ class ApiService {
 }
 
 export const apiService = new ApiService();
+
