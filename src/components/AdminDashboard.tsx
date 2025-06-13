@@ -6,13 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw, Shield } from 'lucide-react';
 import { apiService, SessionData } from '@/services/api'; // SessionData needs to be updated
 import { useToast } from '@/hooks/use-toast';
-import { SessionConfig } from '@/types/config';
+import { SessionConfig } from '@/types/config'; 
 
 // Define a more specific type for session that includes what we expect
 interface SessionDataWithExtensionInfo extends SessionData {
   finalExtensionStatus?: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required';
   // Assuming config will be stored with the session, or at least enableExtensionCheck
-  config?: Partial<Pick<SessionConfig, 'enableExtensionCheck'>>;
+  config?: Partial<Pick<SessionConfig, 'enableExtensionCheck'>>; 
 }
 
 const shouldShowExtensionWarning = (session: SessionDataWithExtensionInfo) => {
@@ -344,3 +344,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
