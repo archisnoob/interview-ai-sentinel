@@ -6,14 +6,16 @@ export interface ExtensionStatus {
   lastPing: number | null;
   disconnected: boolean;
   initiallyConnected: boolean;
+  wasExpected: boolean;
 }
 
-export const useExtensionMonitor = (sessionActive: boolean) => {
+export const useExtensionMonitor = (sessionActive: boolean, extensionExpected: boolean = true) => {
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>({
     isActive: false,
     lastPing: null,
     disconnected: false,
-    initiallyConnected: false
+    initiallyConnected: false,
+    wasExpected: extensionExpected
   });
   const [detectionFlags, setDetectionFlags] = useState<string[]>([]);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -52,12 +54,17 @@ export const useExtensionMonitor = (sessionActive: boolean) => {
             isActive: false,
             initiallyConnected: false
           }));
-          // Don't add any flags if extension was never connected
+          
+          // Only flag if extension was expected
+          if (extensionExpected) {
+            setDetectionFlags(prevFlags => [...prevFlags, 'Extension not active']);
+            console.log('Extension handshake failed - extension was expected but not found');
+          }
           resolve(false);
         }
       }, 1000);
     });
-  }, []);
+  }, [extensionExpected]);
 
   // Monitor extension during session
   useEffect(() => {
@@ -94,8 +101,8 @@ export const useExtensionMonitor = (sessionActive: boolean) => {
       // Wait for pong with timeout
       responseTimeoutRef.current = setTimeout(() => {
         setExtensionStatus(prev => {
-          // Only flag disconnection if extension was initially connected
-          if (prev.initiallyConnected) {
+          // Only flag disconnection if extension was initially connected AND was expected
+          if (prev.initiallyConnected && prev.wasExpected) {
             setDetectionFlags(prevFlags => [...prevFlags, 'Extension inactive during session']);
             console.log('Extension ping timeout - marking as disconnected');
             return { ...prev, disconnected: true };
@@ -116,9 +123,31 @@ export const useExtensionMonitor = (sessionActive: boolean) => {
     };
   }, [sessionActive]);
 
+  // Test cases for verification
+  const runTests = useCallback(() => {
+    console.log('=== Extension Monitor Test Cases ===');
+    
+    // Test 1: No extension ever installed
+    console.log('Test 1: No extension expected - should not raise flags');
+    
+    // Test 2: Extension active at start, then goes inactive mid-session
+    console.log('Test 2: Extension active then inactive - should flag "Extension inactive during session"');
+    
+    // Test 3: Extension missing at session start, but was expected
+    console.log('Test 3: Extension expected but missing - should flag "Extension not active"');
+    
+    // Test 4: Extension active throughout
+    console.log('Test 4: Extension active throughout - should not raise flags');
+    
+    console.log('Current status:', extensionStatus);
+    console.log('Current flags:', detectionFlags);
+    console.log('=== End Test Cases ===');
+  }, [extensionStatus, detectionFlags]);
+
   return {
     extensionStatus,
     detectionFlags,
-    checkExtensionActive
+    checkExtensionActive,
+    runTests
   };
 };

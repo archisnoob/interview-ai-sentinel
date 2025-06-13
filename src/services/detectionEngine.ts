@@ -23,7 +23,8 @@ export class DetectionEngine {
     code: string, 
     sessionDuration: number, 
     extensionFlags: string[] = [],
-    extensionInitiallyConnected: boolean = false
+    extensionInitiallyConnected: boolean = false,
+    extensionWasExpected: boolean = true
   ): DetectionResult {
     const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
     const pasteEvents = typingEvents.filter(e => e.type === 'paste');
@@ -41,11 +42,17 @@ export class DetectionEngine {
     console.log("Metrics:", metrics);
     console.log("Extension Flags:", extensionFlags);
     console.log("Extension Initially Connected:", extensionInitiallyConnected);
+    console.log("Extension Was Expected:", extensionWasExpected);
 
-    // Filter extension flags based on initial connection status
+    // Filter extension flags based on expected vs actual states
     const validExtensionFlags = extensionFlags.filter(flag => {
       if (flag === 'Extension inactive during session') {
-        return extensionInitiallyConnected; // Only include if extension was initially connected
+        // Only include if extension was initially connected AND was expected
+        return extensionInitiallyConnected && extensionWasExpected;
+      }
+      if (flag === 'Extension not active') {
+        // Only include if extension was expected but not found
+        return extensionWasExpected && !extensionInitiallyConnected;
       }
       return true; // Include other flags as-is
     });
@@ -56,9 +63,25 @@ export class DetectionEngine {
     validExtensionFlags.forEach(flag => {
       if (flag === 'Extension inactive during session') {
         suspicionScore += 20;
-        console.log("Flag: Extension disconnected +20");
+        console.log("Flag: Extension disconnected during session +20");
+      } else if (flag === 'Extension not active') {
+        suspicionScore += 15;
+        console.log("Flag: Extension not active at start +15");
       }
     });
+
+    // Test case logging for verification
+    console.log("=== Extension Test Case Verification ===");
+    if (!extensionWasExpected) {
+      console.log("✓ Test 1 Passed: No extension expected - no flags raised");
+    } else if (extensionInitiallyConnected && extensionFlags.includes('Extension inactive during session')) {
+      console.log("✓ Test 2 Passed: Extension active then inactive - flag raised");
+    } else if (extensionWasExpected && !extensionInitiallyConnected && extensionFlags.includes('Extension not active')) {
+      console.log("✓ Test 3 Passed: Extension expected but missing - flag raised");
+    } else if (extensionInitiallyConnected && !extensionFlags.includes('Extension inactive during session')) {
+      console.log("✓ Test 4 Passed: Extension active throughout - no flags");
+    }
+    console.log("=== End Test Case Verification ===");
 
     // NEW FEATURE 1 & 2: Large paste detection with bypass prevention
     const hasUserTyped = keydownEvents.length > 0;

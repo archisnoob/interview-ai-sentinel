@@ -28,8 +28,9 @@ const CodingInterface = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   
-  // Extension monitoring
-  const { extensionStatus, detectionFlags: extensionFlags, checkExtensionActive } = useExtensionMonitor(sessionActive);
+  // Extension monitoring with configurable expectation
+  const extensionExpected = process.env.NODE_ENV !== 'development'; // Only expect in production
+  const { extensionStatus, detectionFlags: extensionFlags, checkExtensionActive } = useExtensionMonitor(sessionActive, extensionExpected);
   
   const currentProfile = candidateType === 'Freshman Intern' ? CANDIDATE_PROFILES.intern : CANDIDATE_PROFILES.professional;
 
@@ -116,18 +117,28 @@ const CodingInterface = () => {
       return;
     }
 
-    // Check extension before starting session (with fallback for development)
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    if (!isDevelopment) {
+    // Check extension if expected (with fallback for development)
+    if (extensionExpected) {
       const extensionActive = await checkExtensionActive();
+      
+      // If extension was expected but not found, optionally block session
       if (!extensionActive) {
-        toast({
-          title: "Extension Required",
-          description: "Chrome extension must be active to start session",
-          variant: "destructive"
-        });
-        return;
+        const shouldProceed = window.confirm(
+          "Chrome extension is not active. This may affect monitoring capabilities. Continue anyway?"
+        );
+        
+        if (!shouldProceed) {
+          toast({
+            title: "Session Blocked",
+            description: "Session start cancelled - extension required",
+            variant: "destructive"
+          });
+          return;
+        }
       }
+    } else {
+      // In development, still check but don't block
+      await checkExtensionActive();
     }
 
     setSessionActive(true);
@@ -169,7 +180,8 @@ const CodingInterface = () => {
       code, 
       sessionDuration, 
       extensionFlags,
-      extensionStatus.initiallyConnected
+      extensionStatus.initiallyConnected,
+      extensionExpected
     );
     setFinalDetectionResult(detectionResult);
 
