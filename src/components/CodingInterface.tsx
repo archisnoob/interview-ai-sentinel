@@ -12,6 +12,8 @@ import RiskVerdictDisplay from '@/components/RiskVerdictDisplay';
 import { apiService, TypingEvent } from '@/services/api';
 import { CANDIDATE_PROFILES, SessionVerdictEngine, CandidateProfile } from '@/services/profiles';
 import { DetectionEngine } from '@/services/detectionEngine';
+import { useExtensionMonitor } from '@/hooks/useExtensionMonitor';
+
 const CodingInterface = () => {
   const [code, setCode] = useState('');
   const [candidateName, setCandidateName] = useState('');
@@ -22,10 +24,13 @@ const CodingInterface = () => {
   const [liveDetectionFlags, setLiveDetectionFlags] = useState<string[]>([]);
   const [tabSwitches, setTabSwitches] = useState(0);
   const [finalDetectionResult, setFinalDetectionResult] = useState<any>(null);
+  const [isSaved, setIsSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+  
+  // Extension monitoring
+  const { extensionStatus, detectionFlags: extensionFlags, checkExtensionActive } = useExtensionMonitor(sessionActive);
+  
   const currentProfile = candidateType === 'Freshman Intern' ? CANDIDATE_PROFILES.intern : CANDIDATE_PROFILES.professional;
 
   // Helper function to filter out modifier keys
@@ -50,6 +55,7 @@ const CodingInterface = () => {
       setTypingEvents(prev => [...prev, event]);
     }
   };
+
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (!sessionActive) return;
     const pastedText = e.clipboardData.getData('text');
@@ -99,7 +105,8 @@ const CodingInterface = () => {
     window.addEventListener('blur', handleBlur);
     return () => window.removeEventListener('blur', handleBlur);
   }, [sessionActive, tabSwitches, toast]);
-  const startSession = () => {
+
+  const startSession = async () => {
     if (!candidateName.trim()) {
       toast({
         title: "Error",
@@ -108,25 +115,56 @@ const CodingInterface = () => {
       });
       return;
     }
+
+    // Check extension before starting session (with fallback for development)
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (!isDevelopment) {
+      const extensionActive = await checkExtensionActive();
+      if (!extensionActive) {
+        toast({
+          title: "Extension Required",
+          description: "Chrome extension must be active to start session",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     setSessionActive(true);
     setSessionStartTime(Date.now());
     setTypingEvents([]);
     setLiveDetectionFlags([]);
     setTabSwitches(0);
     setFinalDetectionResult(null);
+    setIsSaved(false);
+    
     toast({
       title: "Session Started",
       description: `Monitoring ${candidateType} behavior`
     });
   };
+
   const endSession = async () => {
     if (!sessionStartTime) return;
+
+    // Clear code if not saved
+    if (!isSaved) {
+      setCode('');
+      toast({
+        title: "Code Cleared",
+        description: "Unsaved code has been cleared from the editor",
+        variant: "default"
+      });
+    }
 
     // Perform final analysis using both engines
     const sessionDuration = Date.now() - sessionStartTime;
 
+    // Combine extension flags with other detection flags
+    const allDetectionFlags = [...liveDetectionFlags, ...extensionFlags];
+
     // Use the improved DetectionEngine for analysis
-    const detectionResult = DetectionEngine.analyze(typingEvents, code, sessionDuration);
+    const detectionResult = DetectionEngine.analyze(typingEvents, code, sessionDuration, extensionFlags);
     setFinalDetectionResult(detectionResult);
 
     // Also use SessionVerdictEngine for comparison
@@ -137,11 +175,12 @@ const CodingInterface = () => {
     const totalTime = sessionDuration / 1000 / 60; // in minutes
     const totalWPM = totalTime > 0 ? Math.round(keydownEvents.length / 5 / totalTime) : 0;
     const linesOfCode = code.split('\n').length;
+
     try {
       await apiService.saveSession({
         candidateName,
         candidateType,
-        code,
+        code: isSaved ? code : '', // Don't save code if not explicitly saved
         typingEvents,
         duration: sessionDuration,
         verdict: detectionResult.verdict === 'human' ? 'Human' : detectionResult.verdict === 'likely_bot' ? 'Likely Bot' : 'AI Assisted',
@@ -153,6 +192,7 @@ const CodingInterface = () => {
           typingBursts: detectionResult.detailedMetrics.burstTypingEvents
         }
       });
+      
       setSessionActive(false);
       toast({
         title: "Session Completed",
@@ -167,45 +207,80 @@ const CodingInterface = () => {
       });
     }
   };
+
+  const saveCode = () => {
+    setIsSaved(true);
+    toast({
+      title: "Code Saved",
+      description: "Your code has been saved successfully",
+      variant: "default"
+    });
+  };
+
   const runCode = () => {
     toast({
       title: "Code Execution",
       description: "In a real environment, this would execute the code safely"
     });
   };
+
   const getVerdictColor = () => {
-    if (liveDetectionFlags.length === 0) return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-    if (liveDetectionFlags.length >= 2) return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+    const totalFlags = liveDetectionFlags.length + extensionFlags.length;
+    if (totalFlags === 0) return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+    if (totalFlags >= 2) return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
     return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
   };
+
   const getVerdictIcon = () => {
-    if (liveDetectionFlags.length === 0) return <CheckCircle className="h-4 w-4" />;
-    if (liveDetectionFlags.length >= 2) return <AlertTriangle className="h-4 w-4" />;
+    const totalFlags = liveDetectionFlags.length + extensionFlags.length;
+    if (totalFlags === 0) return <CheckCircle className="h-4 w-4" />;
+    if (totalFlags >= 2) return <AlertTriangle className="h-4 w-4" />;
     return <Clock className="h-4 w-4" />;
   };
-  return <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  const allFlags = [...liveDetectionFlags, ...extensionFlags];
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Coding Area */}
       <div className="lg:col-span-2 space-y-6">
         <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardHeader className="bg-gray-900">
+          <CardHeader className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <CardTitle className="text-gray-900 dark:text-gray-100">Interview Platform</CardTitle>
               <div className="flex items-center space-x-2">
                 <Badge className={getVerdictColor()}>
                   {getVerdictIcon()}
                   <span className="ml-1">
-                    {liveDetectionFlags.length === 0 ? 'Normal' : liveDetectionFlags.length >= 2 ? 'High Risk' : 'Suspicious'}
+                    {allFlags.length === 0 ? 'Normal' : allFlags.length >= 2 ? 'High Risk' : 'Suspicious'}
                   </span>
                 </Badge>
-                {sessionActive && liveDetectionFlags.length > 0 && <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">
-                    {liveDetectionFlags.length} flags
-                  </Badge>}
+                {sessionActive && allFlags.length > 0 && (
+                  <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">
+                    {allFlags.length} flags
+                  </Badge>
+                )}
+                {sessionActive && (
+                  <Badge 
+                    variant={extensionStatus.isActive ? "default" : "destructive"}
+                    className="text-xs"
+                  >
+                    Extension: {extensionStatus.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                )}
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 bg-gray-900">
+          <CardContent className="space-y-4 bg-white dark:bg-gray-900">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input type="text" placeholder="Candidate Name" value={candidateName} onChange={e => setCandidateName(e.target.value)} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" disabled={sessionActive} />
+              <input 
+                type="text" 
+                placeholder="Candidate Name" 
+                value={candidateName} 
+                onChange={e => setCandidateName(e.target.value)} 
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" 
+                disabled={sessionActive} 
+              />
               
               <Select value={candidateType} onValueChange={(value: 'Freshman Intern' | 'Pro/Competitive Coder') => setCandidateType(value)} disabled={sessionActive}>
                 <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
@@ -219,16 +294,21 @@ const CodingInterface = () => {
               </Select>
               
               <div className="flex space-x-2">
-                {!sessionActive ? <Button onClick={startSession} className="flex-1">
+                {!sessionActive ? (
+                  <Button onClick={startSession} className="flex-1">
                     Start Session
-                  </Button> : <Button onClick={endSession} variant="destructive" className="flex-1">
+                  </Button>
+                ) : (
+                  <Button onClick={endSession} variant="destructive" className="flex-1">
                     End Session
-                  </Button>}
+                  </Button>
+                )}
               </div>
             </div>
 
             {/* Profile Information */}
-            {!sessionActive && <div className="p-3 border border-blue-200 dark:border-blue-800 rounded-md bg-blue-50 dark:bg-blue-900/20">
+            {!sessionActive && (
+              <div className="p-3 border border-blue-200 dark:border-blue-800 rounded-md bg-blue-50 dark:bg-blue-900/20">
                 <h4 className="text-sm font-medium mb-2 text-blue-800 dark:text-blue-200">
                   Selected Profile: {candidateType}
                 </h4>
@@ -243,57 +323,85 @@ const CodingInterface = () => {
                     <strong>Edit Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '60' : '30'}s
                   </div>
                 </div>
-              </div>}
+              </div>
+            )}
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Problem: Implement a function to reverse a string efficiently
               </label>
-              <Textarea ref={textareaRef} placeholder="Write your code here..." value={code} onChange={e => setCode(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} className="min-h-96 font-mono text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" disabled={!sessionActive} />
+              <Textarea 
+                ref={textareaRef}
+                placeholder="Write your code here..." 
+                value={code} 
+                onChange={e => setCode(e.target.value)} 
+                onKeyDown={handleKeyDown} 
+                onPaste={handlePaste} 
+                className="min-h-96 font-mono text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" 
+                disabled={!sessionActive} 
+              />
             </div>
 
             {/* Live Detection Flags */}
-            {sessionActive && liveDetectionFlags.length > 0 && <div className="space-y-2">
+            {sessionActive && allFlags.length > 0 && (
+              <div className="space-y-2">
                 <h4 className="text-sm font-medium text-red-800 dark:text-red-400">Live Detection Flags:</h4>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {liveDetectionFlags.slice(-5).map((flag, index) => <Badge key={index} variant="destructive" className="text-xs block w-full">
+                  {allFlags.slice(-5).map((flag, index) => (
+                    <Badge key={index} variant="destructive" className="text-xs block w-full">
                       {flag}
-                    </Badge>)}
+                    </Badge>
+                  ))}
                 </div>
-              </div>}
+              </div>
+            )}
             
             <div className="flex space-x-2">
               <Button onClick={runCode} disabled={!sessionActive}>
                 <Play className="h-4 w-4 mr-2" />
                 Run Code
               </Button>
-              <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive}>
+              <Button onClick={saveCode} variant="outline" disabled={!sessionActive}>
                 <Save className="h-4 w-4 mr-2" />
-                Save
+                Save {isSaved && "✓"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Risk Verdict Display */}
-        <RiskVerdictDisplay detectionResult={finalDetectionResult} isVisible={!sessionActive && finalDetectionResult !== null} />
+        <RiskVerdictDisplay 
+          detectionResult={finalDetectionResult} 
+          isVisible={!sessionActive && finalDetectionResult !== null} 
+        />
       </div>
 
       {/* Monitoring Panel */}
       <div className="space-y-6">
-        <TypingAnalyzer typingEvents={typingEvents} isActive={sessionActive} profile={currentProfile} onSuspiciousActivity={activity => {
-        setLiveDetectionFlags(prev => [...prev, activity]);
-        toast({
-          title: "Suspicious Activity",
-          description: activity,
-          variant: "destructive"
-        });
-      }} />
+        <TypingAnalyzer 
+          typingEvents={typingEvents} 
+          isActive={sessionActive} 
+          profile={currentProfile} 
+          onSuspiciousActivity={activity => {
+            setLiveDetectionFlags(prev => [...prev, activity]);
+            toast({
+              title: "Suspicious Activity",
+              description: activity,
+              variant: "destructive"
+            });
+          }} 
+        />
         
-        <RealTimeMonitor isActive={sessionActive} tabSwitches={tabSwitches} onSuspiciousActivity={activity => {
-        setLiveDetectionFlags(prev => [...prev, activity]);
-      }} />
+        <RealTimeMonitor 
+          isActive={sessionActive} 
+          tabSwitches={tabSwitches} 
+          onSuspiciousActivity={activity => {
+            setLiveDetectionFlags(prev => [...prev, activity]);
+          }} 
+        />
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default CodingInterface;

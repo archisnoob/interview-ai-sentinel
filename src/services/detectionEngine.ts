@@ -18,7 +18,12 @@ export interface DetectionResult {
 }
 
 export class DetectionEngine {
-  static analyze(typingEvents: TypingEvent[], code: string, sessionDuration: number): DetectionResult {
+  static analyze(
+    typingEvents: TypingEvent[], 
+    code: string, 
+    sessionDuration: number, 
+    extensionFlags: string[] = []
+  ): DetectionResult {
     const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
     const pasteEvents = typingEvents.filter(e => e.type === 'paste');
     const backspaceEvents = keydownEvents.filter(e => e.key === 'Backspace');
@@ -27,12 +32,23 @@ export class DetectionEngine {
     const metrics = this.calculateMetrics(typingEvents, sessionDuration);
     
     // Run detection algorithms
-    const suspiciousActivities: string[] = [];
+    const suspiciousActivities: string[] = [...extensionFlags];
     let suspicionScore = 0;
     let forceAIAssisted = false;
 
     console.log("=== Detection Engine Analysis ===");
     console.log("Metrics:", metrics);
+    console.log("Extension Flags:", extensionFlags);
+
+    // Add extension flag scoring
+    if (extensionFlags.includes('Extension not active')) {
+      suspicionScore += 25;
+      console.log("Flag: Extension not active +25");
+    }
+    if (extensionFlags.includes('Extension inactive during session')) {
+      suspicionScore += 20;
+      console.log("Flag: Extension disconnected +20");
+    }
 
     // NEW FEATURE 1 & 2: Large paste detection with bypass prevention
     const hasUserTyped = keydownEvents.length > 0;
