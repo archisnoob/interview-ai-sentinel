@@ -1,4 +1,5 @@
 import { TypingEvent } from './api';
+import { SessionConfig } from '@/types/config';
 
 export interface DetectionResult {
   riskLevel: 'low' | 'medium' | 'high';
@@ -15,6 +16,7 @@ export interface DetectionResult {
     burstTypingEvents: number;
     longPauses: number;
   };
+  extensionStatus?: string;
 }
 
 export class DetectionEngine {
@@ -23,67 +25,45 @@ export class DetectionEngine {
     code: string, 
     sessionDuration: number, 
     extensionFlags: string[] = [],
-    extensionInitiallyConnected: boolean = false,
-    extensionWasExpected: boolean = true
+    extensionStatus: string = 'Not Required',
+    config?: SessionConfig
   ): DetectionResult {
     const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
     const pasteEvents = typingEvents.filter(e => e.type === 'paste');
-    const backspaceEvents = keydownEvents.filter(e => e.key === 'Backspace');
 
     // Calculate detailed metrics
     const metrics = this.calculateMetrics(typingEvents, sessionDuration);
     
-    // Run detection algorithms
+    // Run core detection algorithms (unchanged)
     const suspiciousActivities: string[] = [];
     let suspicionScore = 0;
     let forceAIAssisted = false;
 
-    console.log("=== Detection Engine Analysis ===");
-    console.log("Metrics:", metrics);
-    console.log("Extension Flags:", extensionFlags);
-    console.log("Extension Initially Connected:", extensionInitiallyConnected);
-    console.log("Extension Was Expected:", extensionWasExpected);
+    // Only process extension flags if extension check is enabled
+    if (config?.enableExtensionCheck) {
+      // Filter and add valid extension flags (silent - no console logs)
+      const validExtensionFlags = extensionFlags.filter(flag => {
+        if (flag === 'Extension became inactive mid-session') {
+          return extensionStatus === 'Inactive';
+        }
+        if (flag === 'Extension not connected') {
+          return extensionStatus === 'Not Connected';
+        }
+        return false;
+      });
 
-    // Filter extension flags based on expected vs actual states
-    const validExtensionFlags = extensionFlags.filter(flag => {
-      if (flag === 'Extension inactive during session') {
-        // Only include if extension was initially connected AND was expected
-        return extensionInitiallyConnected && extensionWasExpected;
-      }
-      if (flag === 'Extension not active') {
-        // Only include if extension was expected but not found
-        return extensionWasExpected && !extensionInitiallyConnected;
-      }
-      return true; // Include other flags as-is
-    });
-
-    // Add valid extension flags to activities and scoring
-    suspiciousActivities.push(...validExtensionFlags);
-    
-    validExtensionFlags.forEach(flag => {
-      if (flag === 'Extension inactive during session') {
-        suspicionScore += 20;
-        console.log("Flag: Extension disconnected during session +20");
-      } else if (flag === 'Extension not active') {
-        suspicionScore += 15;
-        console.log("Flag: Extension not active at start +15");
-      }
-    });
-
-    // Test case logging for verification
-    console.log("=== Extension Test Case Verification ===");
-    if (!extensionWasExpected) {
-      console.log("✓ Test 1 Passed: No extension expected - no flags raised");
-    } else if (extensionInitiallyConnected && extensionFlags.includes('Extension inactive during session')) {
-      console.log("✓ Test 2 Passed: Extension active then inactive - flag raised");
-    } else if (extensionWasExpected && !extensionInitiallyConnected && extensionFlags.includes('Extension not active')) {
-      console.log("✓ Test 3 Passed: Extension expected but missing - flag raised");
-    } else if (extensionInitiallyConnected && !extensionFlags.includes('Extension inactive during session')) {
-      console.log("✓ Test 4 Passed: Extension active throughout - no flags");
+      suspiciousActivities.push(...validExtensionFlags);
+      
+      validExtensionFlags.forEach(flag => {
+        if (flag === 'Extension became inactive mid-session') {
+          suspicionScore += 15;
+        } else if (flag === 'Extension not connected') {
+          suspicionScore += 10;
+        }
+      });
     }
-    console.log("=== End Test Case Verification ===");
 
-    // NEW FEATURE 1 & 2: Large paste detection with bypass prevention
+    // Large paste detection (≥160 chars triggers ai_assisted)
     const hasUserTyped = keydownEvents.length > 0;
     const largePasteEvents = pasteEvents.filter(e => (e.textLength || 0) >= 160);
     
@@ -91,11 +71,9 @@ export class DetectionEngine {
       const activity = `Large paste content detected (≥160 chars)`;
       suspiciousActivities.push(activity);
       forceAIAssisted = true;
-      console.log("Flag: Large paste detected - forcing AI Assisted verdict");
       
       if (hasUserTyped) {
         suspiciousActivities.push('Pasted AI code after initial manual typing');
-        console.log("Flag: Manual typing before large paste detected");
       }
     }
 
@@ -104,20 +82,17 @@ export class DetectionEngine {
       const activity = `Extremely fast average typing: ${metrics.avgWPM} WPM`;
       suspiciousActivities.push(activity);
       suspicionScore += 30;
-      console.log("Flag: High average WPM +30");
     }
     if (metrics.maxWPM > 200) {
       const activity = `Unrealistic peak typing speed: ${metrics.maxWPM} WPM`;
       suspiciousActivities.push(activity);
       suspicionScore += 25;
-      console.log("Flag: Unrealistic peak WPM +25");
     }
 
     // Consistency analysis
     if (metrics.typingConsistency > 0.8 && metrics.avgWPM > 80) {
       suspiciousActivities.push('Robotic typing consistency detected');
       suspicionScore += 20;
-      console.log("Flag: Robotic consistency +20");
     }
 
     // Error rate analysis
@@ -125,7 +100,6 @@ export class DetectionEngine {
       const activity = `Unnaturally low error rate: ${(metrics.backspaceRatio * 100).toFixed(1)}%`;
       suspiciousActivities.push(activity);
       suspicionScore += 15;
-      console.log("Flag: Low error rate +15");
     }
 
     // Paste behavior
@@ -133,28 +107,20 @@ export class DetectionEngine {
       const activity = `Multiple paste operations: ${metrics.pasteCount}`;
       suspiciousActivities.push(activity);
       suspicionScore += 10 * metrics.pasteCount;
-      console.log(`Flag: Multiple pastes +${10 * metrics.pasteCount}`);
     }
 
     // Burst typing detection
     if (metrics.burstTypingEvents > 3) {
       suspiciousActivities.push('Multiple burst typing patterns detected');
       suspicionScore += 15;
-      console.log("Flag: Burst typing +15");
     }
 
     // Code pattern analysis
     const codeAnalysis = this.analyzeCodePatterns(code);
     suspiciousActivities.push(...codeAnalysis.suspiciousPatterns);
     suspicionScore += codeAnalysis.suspicionScore;
-    if (codeAnalysis.suspicionScore > 0) {
-      console.log(`Flag: Code patterns +${codeAnalysis.suspicionScore}`);
-    }
 
-    console.log("Suspicion Score:", suspicionScore);
-    console.log("Suspicious Activities:", suspiciousActivities);
-
-    // Determine risk level and verdict with large paste override
+    // Determine risk level and verdict (core logic unchanged)
     let riskLevel: 'low' | 'medium' | 'high';
     let verdict: 'human' | 'likely_bot' | 'ai_assisted';
 
@@ -172,15 +138,13 @@ export class DetectionEngine {
       verdict = 'human';
     }
 
-    console.log("Final Verdict:", verdict, "Risk Level:", riskLevel);
-    console.log("=== End Analysis ===");
-
     return {
       riskLevel,
       verdict,
       suspiciousActivities,
       confidence: suspicionScore,
-      detailedMetrics: metrics
+      detailedMetrics: metrics,
+      extensionStatus: config?.enableExtensionCheck ? extensionStatus : undefined
     };
   }
 

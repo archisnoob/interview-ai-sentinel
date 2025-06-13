@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw } from 'lucide-react';
+import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw, Shield } from 'lucide-react';
 import { apiService, SessionData } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,7 +27,6 @@ const AdminDashboard = () => {
     setIsLoading(true);
     try {
       const sessionData = await apiService.getSessions();
-      // NEW FEATURE 3: Sort sessions by timestamp in descending order (newest first)
       const sortedSessions = sessionData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setSessions(sortedSessions);
       toast({
@@ -53,7 +52,6 @@ const AdminDashboard = () => {
     if (filterCandidateType !== 'all') {
       filtered = filtered.filter(session => session.candidateType === filterCandidateType);
     }
-    // Maintain chronological order after filtering
     filtered = filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     setFilteredSessions(filtered);
   };
@@ -104,6 +102,13 @@ const AdminDashboard = () => {
     const minutes = Math.floor(milliseconds / 60000);
     const seconds = Math.floor((milliseconds % 60000) / 1000);
     return `${minutes}m ${seconds}s`;
+  };
+
+  const hasExtensionIssues = (session: SessionData) => {
+    return session.detectionFlags?.some(flag => 
+      flag.includes('Extension not connected') || 
+      flag.includes('Extension became inactive')
+    );
   };
 
   const totalSessions = sessions.length;
@@ -230,6 +235,16 @@ const AdminDashboard = () => {
             {filteredSessions.map(session => (
               <Card key={session.id} className="border-l-4 border-l-gray-200 dark:border-l-gray-600 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardContent className="p-6">
+                  {/* Admin-only Extension Warning */}
+                  {hasExtensionIssues(session) && (
+                    <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-md">
+                      <div className="flex items-center space-x-2 text-orange-700 dark:text-orange-400">
+                        <Shield className="h-4 w-4" />
+                        <span className="text-sm font-medium">⚠️ Extension monitoring unavailable - Limited system monitoring data</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Basic Info */}
                     <div className="space-y-3">

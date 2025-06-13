@@ -1,153 +1,118 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { SessionConfig } from '@/types/config';
 
 export interface ExtensionStatus {
-  isActive: boolean;
+  status: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required';
   lastPing: number | null;
   disconnected: boolean;
   initiallyConnected: boolean;
   wasExpected: boolean;
 }
 
-export const useExtensionMonitor = (sessionActive: boolean, extensionExpected: boolean = true) => {
+export const useExtensionMonitor = (sessionActive: boolean, config: SessionConfig) => {
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>({
-    isActive: false,
+    status: config.enableExtensionCheck ? 'Not Connected' : 'Not Required',
     lastPing: null,
     disconnected: false,
     initiallyConnected: false,
-    wasExpected: extensionExpected
+    wasExpected: config.enableExtensionCheck
   });
   const [detectionFlags, setDetectionFlags] = useState<string[]>([]);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const responseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const failureCountRef = useRef(0);
 
-  // Check if extension is active with handshake
-  const checkExtensionActive = useCallback((): Promise<boolean> => {
-    return new Promise((resolve) => {
-      let responseReceived = false;
-
-      const handleMessage = (event: MessageEvent) => {
-        if (event.data?.type === 'AI_EXTENSION_ACK') {
-          responseReceived = true;
-          setExtensionStatus(prev => ({ 
-            ...prev, 
-            isActive: true, 
-            lastPing: Date.now(),
-            initiallyConnected: true
-          }));
-          window.removeEventListener('message', handleMessage);
-          resolve(true);
-        }
-      };
-
-      window.addEventListener('message', handleMessage);
+  // Silent background polling to localhost:4201/handshake
+  const performSilentHandshake = useCallback(async (): Promise<boolean> => {
+    if (!config.enableExtensionCheck) return false;
+    
+    try {
+      const response = await fetch('http://localhost:4201/handshake', {
+        method: 'GET',
+        timeout: 1000
+      } as any);
       
-      // Send handshake
-      window.postMessage({ type: 'AI_EXTENSION_HANDSHAKE' }, '*');
-      
-      // Timeout after 1 second
-      setTimeout(() => {
-        if (!responseReceived) {
-          window.removeEventListener('message', handleMessage);
-          setExtensionStatus(prev => ({ 
-            ...prev, 
-            isActive: false,
-            initiallyConnected: false
-          }));
-          
-          // Only flag if extension was expected
-          if (extensionExpected) {
-            setDetectionFlags(prevFlags => [...prevFlags, 'Extension not active']);
-            console.log('Extension handshake failed - extension was expected but not found');
-          }
-          resolve(false);
+      if (response.ok) {
+        failureCountRef.current = 0;
+        setExtensionStatus(prev => ({ 
+          ...prev, 
+          status: 'Connected',
+          lastPing: Date.now(),
+          initiallyConnected: true,
+          disconnected: false
+        }));
+        return true;
+      }
+    } catch (error) {
+      // Silent failure - no console logs or UI messages
+    }
+    
+    failureCountRef.current += 1;
+    
+    // After 3 consecutive failures, mark as inactive
+    if (failureCountRef.current >= 3) {
+      setExtensionStatus(prev => {
+        if (prev.initiallyConnected && prev.status === 'Connected') {
+          // Only flag if was previously connected
+          setDetectionFlags(prevFlags => [...prevFlags, 'Extension became inactive mid-session']);
+          return { ...prev, status: 'Inactive', disconnected: true };
+        } else if (!prev.initiallyConnected && prev.status === 'Not Connected') {
+          // Never connected during session
+          setDetectionFlags(prevFlags => [...prevFlags, 'Extension not connected']);
+          return { ...prev, status: 'Not Connected' };
         }
-      }, 1000);
-    });
-  }, [extensionExpected]);
+        return prev;
+      });
+    }
+    
+    return false;
+  }, [config.enableExtensionCheck]);
 
-  // Monitor extension during session
+  // Monitor extension during session with silent polling
   useEffect(() => {
-    if (!sessionActive) {
-      // Cleanup when session ends
+    if (!sessionActive || !config.enableExtensionCheck) {
+      // Cleanup when session ends or extension check disabled
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
         pingIntervalRef.current = null;
       }
-      if (responseTimeoutRef.current) {
-        clearTimeout(responseTimeoutRef.current);
-        responseTimeoutRef.current = null;
-      }
       return;
     }
 
-    // Start monitoring during active session
-    const handlePongMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'AI_EXTENSION_PONG') {
-        setExtensionStatus(prev => ({ ...prev, lastPing: Date.now(), disconnected: false }));
-        if (responseTimeoutRef.current) {
-          clearTimeout(responseTimeoutRef.current);
-          responseTimeoutRef.current = null;
-        }
-      }
-    };
-
-    window.addEventListener('message', handlePongMessage);
-
-    // Set up ping interval
+    // Start silent background polling every 10 seconds
     pingIntervalRef.current = setInterval(() => {
-      window.postMessage({ type: 'AI_EXTENSION_PING' }, '*');
-      
-      // Wait for pong with timeout
-      responseTimeoutRef.current = setTimeout(() => {
-        setExtensionStatus(prev => {
-          // Only flag disconnection if extension was initially connected AND was expected
-          if (prev.initiallyConnected && prev.wasExpected) {
-            setDetectionFlags(prevFlags => [...prevFlags, 'Extension inactive during session']);
-            console.log('Extension ping timeout - marking as disconnected');
-            return { ...prev, disconnected: true };
-          }
-          return prev;
-        });
-      }, 800);
+      performSilentHandshake();
     }, 10000);
 
+    // Initial handshake attempt
+    performSilentHandshake();
+
     return () => {
-      window.removeEventListener('message', handlePongMessage);
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
       }
-      if (responseTimeoutRef.current) {
-        clearTimeout(responseTimeoutRef.current);
-      }
     };
-  }, [sessionActive]);
+  }, [sessionActive, config.enableExtensionCheck, performSilentHandshake]);
 
-  // Test cases for verification
-  const runTests = useCallback(() => {
-    console.log('=== Extension Monitor Test Cases ===');
+  const getExtensionVerdict = useCallback(() => {
+    if (!config.enableExtensionCheck) {
+      return 'Extension not required';
+    }
     
-    // Test 1: No extension ever installed
-    console.log('Test 1: No extension expected - should not raise flags');
-    
-    // Test 2: Extension active at start, then goes inactive mid-session
-    console.log('Test 2: Extension active then inactive - should flag "Extension inactive during session"');
-    
-    // Test 3: Extension missing at session start, but was expected
-    console.log('Test 3: Extension expected but missing - should flag "Extension not active"');
-    
-    // Test 4: Extension active throughout
-    console.log('Test 4: Extension active throughout - should not raise flags');
-    
-    console.log('Current status:', extensionStatus);
-    console.log('Current flags:', detectionFlags);
-    console.log('=== End Test Cases ===');
-  }, [extensionStatus, detectionFlags]);
+    switch (extensionStatus.status) {
+      case 'Connected':
+        return 'Extension connected during full session';
+      case 'Inactive':
+      case 'Not Connected':
+        return 'Extension not present or inactive';
+      default:
+        return 'Extension status unknown';
+    }
+  }, [config.enableExtensionCheck, extensionStatus.status]);
 
   return {
     extensionStatus,
     detectionFlags,
-    checkExtensionActive,
-    runTests
+    getExtensionVerdict
   };
 };
