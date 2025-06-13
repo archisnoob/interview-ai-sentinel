@@ -1,4 +1,8 @@
 
+import { StorageService } from './storage';
+import { SessionConfig } from '@/types/config'; // Ensure SessionConfig is imported
+
+// 1. Update SessionData interface
 export interface SessionData {
   id: string;
   candidateName: string;
@@ -15,6 +19,9 @@ export interface SessionData {
     linesOfCode: number;
     typingBursts: number;
   };
+  // New fields for extension status and config used during the session
+  finalExtensionStatus?: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required';
+  config?: Pick<SessionConfig, 'enableExtensionCheck' | 'profile'>; // Store relevant parts of config
 }
 
 export interface TypingEvent {
@@ -24,8 +31,6 @@ export interface TypingEvent {
   textLength?: number;
   position?: number;
 }
-
-import { StorageService } from './storage';
 
 class ApiService {
   private sessions: SessionData[] = [];
@@ -44,14 +49,22 @@ class ApiService {
     this.sessions.push(session);
     StorageService.saveSessions(this.sessions);
     
-    console.log('Session saved:', session);
+    // console.log('Session saved:', session); // Keep for debugging if needed
     
     return session;
   }
 
   async getSessions(): Promise<SessionData[]> {
     this.sessions = StorageService.loadSessions();
-    return this.sessions;
+    // Ensure loaded sessions conform to the new SessionData structure if they were saved before this change.
+    // For now, we assume new sessions will have these fields, and old ones might have them as undefined.
+    return this.sessions.map(s => ({
+        ...s, // Spread existing properties
+        // Provide default for finalExtensionStatus if not present (for old data)
+        finalExtensionStatus: s.finalExtensionStatus || 'Not Required',
+        // Provide default for config if not present
+        config: s.config || { enableExtensionCheck: false, profile: "Freshman Intern" }
+    }));
   }
 
   async deleteSession(sessionId: string): Promise<void> {
@@ -79,7 +92,8 @@ class ApiService {
       },
       sessions: sessions.map(session => ({
         ...session,
-        typingEvents: session.typingEvents.length
+        typingEventsCount: session.typingEvents.length, // Example: simplify typingEvents for export
+        // typingEvents: session.typingEvents.length // Original, might be too verbose
       }))
     };
 

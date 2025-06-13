@@ -16,111 +16,149 @@ export interface DetectionResult {
     burstTypingEvents: number;
     longPauses: number;
   };
-  extensionStatus?: string;
+  finalExtensionStatus: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required';
 }
+
+let currentExtensionStatus: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required' = 'Not Required';
+let extensionFailureCount = 0;
+let extensionHandshakeIntervalId: NodeJS.Timeout | undefined;
+let sessionFlags: string[] = [];
+
+const logFlag = (flag: string) => {
+  if (!sessionFlags.includes(flag)) {
+    sessionFlags.push(flag);
+  }
+};
+
+export const initializeExtensionMonitoring = (config: SessionConfig | undefined) => {
+  sessionFlags = [];
+  if (extensionHandshakeIntervalId) {
+    clearInterval(extensionHandshakeIntervalId);
+    extensionHandshakeIntervalId = undefined;
+  }
+  extensionFailureCount = 0;
+
+  if (config && config.enableExtensionCheck) {
+    currentExtensionStatus = 'Not Connected';
+
+    extensionHandshakeIntervalId = setInterval(async () => {
+      try {
+        const res = await fetch("http://localhost:4201/handshake");
+        if (res.ok) {
+          currentExtensionStatus = 'Connected';
+          extensionFailureCount = 0;
+        } else {
+          extensionFailureCount++;
+        }
+      } catch {
+        extensionFailureCount++;
+      }
+
+      if (extensionFailureCount >= 3) {
+        if (currentExtensionStatus !== 'Inactive') {
+          logFlag('Extension became inactive mid-session');
+        }
+        currentExtensionStatus = 'Inactive';
+        if (extensionHandshakeIntervalId) {
+            clearInterval(extensionHandshakeIntervalId);
+            extensionHandshakeIntervalId = undefined;
+        }
+      }
+    }, 10000);
+  } else {
+    currentExtensionStatus = 'Not Required';
+  }
+};
+
+export const finalizeExtensionMonitoring = (config: SessionConfig | undefined) => {
+  if (extensionHandshakeIntervalId) {
+    clearInterval(extensionHandshakeIntervalId);
+    extensionHandshakeIntervalId = undefined;
+  }
+  if (config && config.enableExtensionCheck && currentExtensionStatus === 'Not Connected') {
+      logFlag('Extension not connected');
+  }
+};
 
 export class DetectionEngine {
   static analyze(
     typingEvents: TypingEvent[], 
     code: string, 
     sessionDuration: number, 
-    extensionFlags: string[] = [],
-    extensionStatus: string = 'Not Required',
-    config?: SessionConfig
+    config: SessionConfig | undefined
   ): DetectionResult {
     const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
     const pasteEvents = typingEvents.filter(e => e.type === 'paste');
 
-    // Calculate detailed metrics
     const metrics = this.calculateMetrics(typingEvents, sessionDuration);
-    
-    // Run core detection algorithms (unchanged)
+    const currentSessionFlags = [...sessionFlags];
     const suspiciousActivities: string[] = [];
     let suspicionScore = 0;
     let forceAIAssisted = false;
 
-    // Only process extension flags if extension check is enabled
-    if (config?.enableExtensionCheck) {
-      // Filter and add valid extension flags (silent - no console logs)
-      const validExtensionFlags = extensionFlags.filter(flag => {
+    if (config && config.enableExtensionCheck) {
+      currentSessionFlags.forEach(flag => {
         if (flag === 'Extension became inactive mid-session') {
-          return extensionStatus === 'Inactive';
-        }
-        if (flag === 'Extension not connected') {
-          return extensionStatus === 'Not Connected';
-        }
-        return false;
-      });
-
-      suspiciousActivities.push(...validExtensionFlags);
-      
-      validExtensionFlags.forEach(flag => {
-        if (flag === 'Extension became inactive mid-session') {
+          if (!suspiciousActivities.includes(flag)) suspiciousActivities.push(flag);
           suspicionScore += 15;
         } else if (flag === 'Extension not connected') {
+          if (!suspiciousActivities.includes(flag)) suspiciousActivities.push(flag);
           suspicionScore += 10;
         }
       });
     }
 
-    // Large paste detection (≥160 chars triggers ai_assisted)
     const hasUserTyped = keydownEvents.length > 0;
     const largePasteEvents = pasteEvents.filter(e => (e.textLength || 0) >= 160);
     
     if (largePasteEvents.length > 0) {
-      const activity = `Large paste content detected (≥160 chars)`;
-      suspiciousActivities.push(activity);
+      const activity = `Large paste content detected (>=160 chars)`;
+      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
       forceAIAssisted = true;
       
       if (hasUserTyped) {
-        suspiciousActivities.push('Pasted AI code after initial manual typing');
+        const specificActivity = 'Pasted AI code after initial manual typing';
+        if (!suspiciousActivities.includes(specificActivity)) suspiciousActivities.push(specificActivity);
       }
     }
 
-    // Speed analysis
     if (metrics.avgWPM > 120) {
       const activity = `Extremely fast average typing: ${metrics.avgWPM} WPM`;
-      suspiciousActivities.push(activity);
+      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
       suspicionScore += 30;
     }
     if (metrics.maxWPM > 200) {
       const activity = `Unrealistic peak typing speed: ${metrics.maxWPM} WPM`;
-      suspiciousActivities.push(activity);
+      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
       suspicionScore += 25;
     }
-
-    // Consistency analysis
     if (metrics.typingConsistency > 0.8 && metrics.avgWPM > 80) {
-      suspiciousActivities.push('Robotic typing consistency detected');
+      const activity = 'Robotic typing consistency detected';
+      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
       suspicionScore += 20;
     }
-
-    // Error rate analysis
     if (metrics.backspaceRatio < 0.02 && code.length > 100) {
       const activity = `Unnaturally low error rate: ${(metrics.backspaceRatio * 100).toFixed(1)}%`;
-      suspiciousActivities.push(activity);
+      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
       suspicionScore += 15;
     }
-
-    // Paste behavior
     if (metrics.pasteCount > 2) {
       const activity = `Multiple paste operations: ${metrics.pasteCount}`;
-      suspiciousActivities.push(activity);
+      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
       suspicionScore += 10 * metrics.pasteCount;
     }
-
-    // Burst typing detection
     if (metrics.burstTypingEvents > 3) {
-      suspiciousActivities.push('Multiple burst typing patterns detected');
+      const activity = 'Multiple burst typing patterns detected';
+      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
       suspicionScore += 15;
     }
 
-    // Code pattern analysis
     const codeAnalysis = this.analyzeCodePatterns(code);
-    suspiciousActivities.push(...codeAnalysis.suspiciousPatterns);
+    codeAnalysis.suspiciousPatterns.forEach(p => {
+      if(!suspiciousActivities.includes(p)) suspiciousActivities.push(p);
+    });
     suspicionScore += codeAnalysis.suspicionScore;
 
-    // Determine risk level and verdict (core logic unchanged)
     let riskLevel: 'low' | 'medium' | 'high';
     let verdict: 'human' | 'likely_bot' | 'ai_assisted';
 
@@ -138,13 +176,27 @@ export class DetectionEngine {
       verdict = 'human';
     }
 
+    let extensionVerdictMessage = '';
+    if (config && config.enableExtensionCheck) {
+      switch (currentExtensionStatus) {
+        case 'Connected': extensionVerdictMessage = 'Extension connected during full session'; break;
+        case 'Inactive':
+        case 'Not Connected': extensionVerdictMessage = 'Extension not present or inactive'; break;
+      }
+    } else {
+      extensionVerdictMessage = 'Extension not required';
+    }
+    if (extensionVerdictMessage && !suspiciousActivities.includes(extensionVerdictMessage)) {
+      suspiciousActivities.push(extensionVerdictMessage);
+    }
+
     return {
       riskLevel,
       verdict,
       suspiciousActivities,
       confidence: suspicionScore,
       detailedMetrics: metrics,
-      extensionStatus: config?.enableExtensionCheck ? extensionStatus : undefined
+      finalExtensionStatus: currentExtensionStatus
     };
   }
 
