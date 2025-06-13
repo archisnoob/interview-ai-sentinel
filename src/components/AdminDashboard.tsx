@@ -4,12 +4,29 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, AlertTriangle, CheckCircle, Clock, Download, Filter, RefreshCw, Shield } from 'lucide-react';
-import { apiService, SessionData } from '@/services/api';
+import { apiService, SessionData } from '@/services/api'; // SessionData needs to be updated
 import { useToast } from '@/hooks/use-toast';
+import { SessionConfig } from '@/types/config';
+
+// Define a more specific type for session that includes what we expect
+interface SessionDataWithExtensionInfo extends SessionData {
+  finalExtensionStatus?: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required';
+  // Assuming config will be stored with the session, or at least enableExtensionCheck
+  config?: Partial<Pick<SessionConfig, 'enableExtensionCheck'>>;
+}
+
+const shouldShowExtensionWarning = (session: SessionDataWithExtensionInfo) => {
+  if (session.config?.enableExtensionCheck && session.finalExtensionStatus) {
+    return session.finalExtensionStatus === 'Inactive' || session.finalExtensionStatus === 'Not Connected';
+  }
+  return false;
+};
+
 
 const AdminDashboard = () => {
-  const [sessions, setSessions] = useState<SessionData[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<SessionData[]>([]);
+  // Use the more specific type for state
+  const [sessions, setSessions] = useState<SessionDataWithExtensionInfo[]>([]);
+  const [filteredSessions, setFilteredSessions] = useState<SessionDataWithExtensionInfo[]>([]);
   const [filterVerdict, setFilterVerdict] = useState<string>('all');
   const [filterCandidateType, setFilterCandidateType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,11 +44,13 @@ const AdminDashboard = () => {
     setIsLoading(true);
     try {
       const sessionData = await apiService.getSessions();
-      const sortedSessions = sessionData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      // Cast to the more specific type, assuming API will provide these fields
+      const typedSessionData = sessionData as SessionDataWithExtensionInfo[];
+      const sortedSessions = typedSessionData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setSessions(sortedSessions);
       toast({
         title: "Data Loaded",
-        description: `Found ${sessionData.length} sessions`
+        description: `Found ${sortedSessions.length} sessions`
       });
     } catch (error) {
       toast({
@@ -52,7 +71,8 @@ const AdminDashboard = () => {
     if (filterCandidateType !== 'all') {
       filtered = filtered.filter(session => session.candidateType === filterCandidateType);
     }
-    filtered = filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    // Ensure sorting is stable if needed, or just re-apply sort
+    filtered = [...filtered].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     setFilteredSessions(filtered);
   };
 
@@ -102,13 +122,6 @@ const AdminDashboard = () => {
     const minutes = Math.floor(milliseconds / 60000);
     const seconds = Math.floor((milliseconds % 60000) / 1000);
     return `${minutes}m ${seconds}s`;
-  };
-
-  const hasExtensionIssues = (session: SessionData) => {
-    return session.detectionFlags?.some(flag => 
-      flag.includes('Extension not connected') || 
-      flag.includes('Extension became inactive')
-    );
   };
 
   const totalSessions = sessions.length;
@@ -235,12 +248,12 @@ const AdminDashboard = () => {
             {filteredSessions.map(session => (
               <Card key={session.id} className="border-l-4 border-l-gray-200 dark:border-l-gray-600 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardContent className="p-6">
-                  {/* Admin-only Extension Warning */}
-                  {hasExtensionIssues(session) && (
-                    <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-md">
+                  {shouldShowExtensionWarning(session) && (
+                    <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700 rounded-md">
                       <div className="flex items-center space-x-2 text-orange-700 dark:text-orange-400">
                         <Shield className="h-4 w-4" />
-                        <span className="text-sm font-medium">⚠️ Extension monitoring unavailable - Limited system monitoring data</span>
+                        {/* Removed emoji from here */}
+                        <span className="text-sm font-medium">(Warning) Candidate did not connect extension. System monitoring data potentially limited.</span>
                       </div>
                     </div>
                   )}
