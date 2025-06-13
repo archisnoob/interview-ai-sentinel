@@ -16,13 +16,13 @@ export interface DetectionResult {
     burstTypingEvents: number;
     longPauses: number;
   };
-  finalExtensionStatus: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required';
+  finalExtensionStatus: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required'; 
 }
 
 let currentExtensionStatus: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required' = 'Not Required';
 let extensionFailureCount = 0;
-let extensionHandshakeIntervalId: NodeJS.Timeout | undefined;
-let sessionFlags: string[] = [];
+let extensionHandshakeIntervalId: NodeJS.Timeout | undefined; 
+let sessionFlags: string[] = []; 
 
 const logFlag = (flag: string) => {
   if (!sessionFlags.includes(flag)) {
@@ -31,7 +31,7 @@ const logFlag = (flag: string) => {
 };
 
 export const initializeExtensionMonitoring = (config: SessionConfig | undefined) => {
-  sessionFlags = [];
+  sessionFlags = []; 
   if (extensionHandshakeIntervalId) {
     clearInterval(extensionHandshakeIntervalId);
     extensionHandshakeIntervalId = undefined;
@@ -39,7 +39,7 @@ export const initializeExtensionMonitoring = (config: SessionConfig | undefined)
   extensionFailureCount = 0;
 
   if (config && config.enableExtensionCheck) {
-    currentExtensionStatus = 'Not Connected';
+    currentExtensionStatus = 'Not Connected'; 
 
     extensionHandshakeIntervalId = setInterval(async () => {
       try {
@@ -92,7 +92,7 @@ export class DetectionEngine {
 
     const metrics = this.calculateMetrics(typingEvents, sessionDuration);
     const currentSessionFlags = [...sessionFlags];
-    const suspiciousActivities: string[] = [];
+    const suspiciousActivities: string[] = []; 
     let suspicionScore = 0;
     let forceAIAssisted = false;
 
@@ -112,7 +112,7 @@ export class DetectionEngine {
     const largePasteEvents = pasteEvents.filter(e => (e.textLength || 0) >= 160);
     
     if (largePasteEvents.length > 0) {
-      const activity = `Large paste content detected (>=160 chars)`;
+      const activity = `Large paste content detected (>=160 chars)`; 
       if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
       forceAIAssisted = true;
       
@@ -175,7 +175,7 @@ export class DetectionEngine {
       riskLevel = 'low';
       verdict = 'human';
     }
-
+    
     let extensionVerdictMessage = '';
     if (config && config.enableExtensionCheck) {
       switch (currentExtensionStatus) {
