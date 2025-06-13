@@ -29,9 +29,26 @@ export class DetectionEngine {
     // Run detection algorithms
     const suspiciousActivities: string[] = [];
     let suspicionScore = 0;
+    let forceAIAssisted = false;
 
     console.log("=== Detection Engine Analysis ===");
     console.log("Metrics:", metrics);
+
+    // NEW FEATURE 1 & 2: Large paste detection with bypass prevention
+    const hasUserTyped = keydownEvents.length > 0;
+    const largePasteEvents = pasteEvents.filter(e => (e.textLength || 0) >= 160);
+    
+    if (largePasteEvents.length > 0) {
+      const activity = `Large paste content detected (≥160 chars)`;
+      suspiciousActivities.push(activity);
+      forceAIAssisted = true;
+      console.log("Flag: Large paste detected - forcing AI Assisted verdict");
+      
+      if (hasUserTyped) {
+        suspiciousActivities.push('Pasted AI code after initial manual typing');
+        console.log("Flag: Manual typing before large paste detected");
+      }
+    }
 
     // Speed analysis
     if (metrics.avgWPM > 120) {
@@ -88,11 +105,14 @@ export class DetectionEngine {
     console.log("Suspicion Score:", suspicionScore);
     console.log("Suspicious Activities:", suspiciousActivities);
 
-    // Determine risk level and verdict with improved thresholds
+    // Determine risk level and verdict with large paste override
     let riskLevel: 'low' | 'medium' | 'high';
     let verdict: 'human' | 'likely_bot' | 'ai_assisted';
 
-    if (suspicionScore >= 45) {
+    if (forceAIAssisted) {
+      riskLevel = 'high';
+      verdict = 'ai_assisted';
+    } else if (suspicionScore >= 45) {
       riskLevel = 'high';
       verdict = 'ai_assisted';
     } else if (suspicionScore >= 15) {
