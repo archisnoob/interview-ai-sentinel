@@ -22,7 +22,8 @@ export class DetectionEngine {
     typingEvents: TypingEvent[], 
     code: string, 
     sessionDuration: number, 
-    extensionFlags: string[] = []
+    extensionFlags: string[] = [],
+    extensionInitiallyConnected: boolean = false
   ): DetectionResult {
     const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
     const pasteEvents = typingEvents.filter(e => e.type === 'paste');
@@ -32,23 +33,32 @@ export class DetectionEngine {
     const metrics = this.calculateMetrics(typingEvents, sessionDuration);
     
     // Run detection algorithms
-    const suspiciousActivities: string[] = [...extensionFlags];
+    const suspiciousActivities: string[] = [];
     let suspicionScore = 0;
     let forceAIAssisted = false;
 
     console.log("=== Detection Engine Analysis ===");
     console.log("Metrics:", metrics);
     console.log("Extension Flags:", extensionFlags);
+    console.log("Extension Initially Connected:", extensionInitiallyConnected);
 
-    // Add extension flag scoring
-    if (extensionFlags.includes('Extension not active')) {
-      suspicionScore += 25;
-      console.log("Flag: Extension not active +25");
-    }
-    if (extensionFlags.includes('Extension inactive during session')) {
-      suspicionScore += 20;
-      console.log("Flag: Extension disconnected +20");
-    }
+    // Filter extension flags based on initial connection status
+    const validExtensionFlags = extensionFlags.filter(flag => {
+      if (flag === 'Extension inactive during session') {
+        return extensionInitiallyConnected; // Only include if extension was initially connected
+      }
+      return true; // Include other flags as-is
+    });
+
+    // Add valid extension flags to activities and scoring
+    suspiciousActivities.push(...validExtensionFlags);
+    
+    validExtensionFlags.forEach(flag => {
+      if (flag === 'Extension inactive during session') {
+        suspicionScore += 20;
+        console.log("Flag: Extension disconnected +20");
+      }
+    });
 
     // NEW FEATURE 1 & 2: Large paste detection with bypass prevention
     const hasUserTyped = keydownEvents.length > 0;

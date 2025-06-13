@@ -163,8 +163,14 @@ const CodingInterface = () => {
     // Combine extension flags with other detection flags
     const allDetectionFlags = [...liveDetectionFlags, ...extensionFlags];
 
-    // Use the improved DetectionEngine for analysis
-    const detectionResult = DetectionEngine.analyze(typingEvents, code, sessionDuration, extensionFlags);
+    // Use the improved DetectionEngine for analysis, passing extension initial connection status
+    const detectionResult = DetectionEngine.analyze(
+      typingEvents, 
+      code, 
+      sessionDuration, 
+      extensionFlags,
+      extensionStatus.initiallyConnected
+    );
     setFinalDetectionResult(detectionResult);
 
     // Also use SessionVerdictEngine for comparison

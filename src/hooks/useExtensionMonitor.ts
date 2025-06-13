@@ -5,13 +5,15 @@ export interface ExtensionStatus {
   isActive: boolean;
   lastPing: number | null;
   disconnected: boolean;
+  initiallyConnected: boolean;
 }
 
 export const useExtensionMonitor = (sessionActive: boolean) => {
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>({
     isActive: false,
     lastPing: null,
-    disconnected: false
+    disconnected: false,
+    initiallyConnected: false
   });
   const [detectionFlags, setDetectionFlags] = useState<string[]>([]);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -25,7 +27,12 @@ export const useExtensionMonitor = (sessionActive: boolean) => {
       const handleMessage = (event: MessageEvent) => {
         if (event.data?.type === 'AI_EXTENSION_ACK') {
           responseReceived = true;
-          setExtensionStatus(prev => ({ ...prev, isActive: true, lastPing: Date.now() }));
+          setExtensionStatus(prev => ({ 
+            ...prev, 
+            isActive: true, 
+            lastPing: Date.now(),
+            initiallyConnected: true
+          }));
           window.removeEventListener('message', handleMessage);
           resolve(true);
         }
@@ -40,8 +47,12 @@ export const useExtensionMonitor = (sessionActive: boolean) => {
       setTimeout(() => {
         if (!responseReceived) {
           window.removeEventListener('message', handleMessage);
-          setExtensionStatus(prev => ({ ...prev, isActive: false }));
-          setDetectionFlags(prev => [...prev, 'Extension not active']);
+          setExtensionStatus(prev => ({ 
+            ...prev, 
+            isActive: false,
+            initiallyConnected: false
+          }));
+          // Don't add any flags if extension was never connected
           resolve(false);
         }
       }, 1000);
@@ -82,9 +93,15 @@ export const useExtensionMonitor = (sessionActive: boolean) => {
       
       // Wait for pong with timeout
       responseTimeoutRef.current = setTimeout(() => {
-        setExtensionStatus(prev => ({ ...prev, disconnected: true }));
-        setDetectionFlags(prev => [...prev, 'Extension inactive during session']);
-        console.log('Extension ping timeout - marking as disconnected');
+        setExtensionStatus(prev => {
+          // Only flag disconnection if extension was initially connected
+          if (prev.initiallyConnected) {
+            setDetectionFlags(prevFlags => [...prevFlags, 'Extension inactive during session']);
+            console.log('Extension ping timeout - marking as disconnected');
+            return { ...prev, disconnected: true };
+          }
+          return prev;
+        });
       }, 800);
     }, 10000);
 
