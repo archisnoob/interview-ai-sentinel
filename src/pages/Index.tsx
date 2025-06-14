@@ -16,8 +16,8 @@ const Index = () => {
                 <Shield className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="font-bold transition-colors text-orange-400 text-4xl">AI Cheating Detection System</h1>
-                
+                <h1 className="text-2xl font-bold transition-colors text-orange-700">AI Cheating Detection System</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-300 transition-colors">Advanced behavioral analysis for coding interviews</p>
               </div>
             </div>
             <ThemeToggle />

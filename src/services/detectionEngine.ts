@@ -1,5 +1,4 @@
 import { TypingEvent } from './api';
-import { SessionConfig } from '@/types/config';
 
 export interface DetectionResult {
   riskLevel: 'low' | 'medium' | 'high';
@@ -16,149 +15,97 @@ export interface DetectionResult {
     burstTypingEvents: number;
     longPauses: number;
   };
-  finalExtensionStatus: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required'; 
 }
 
-let currentExtensionStatus: 'Connected' | 'Inactive' | 'Not Connected' | 'Not Required' = 'Not Required';
-let extensionFailureCount = 0;
-let extensionHandshakeIntervalId: NodeJS.Timeout | undefined; 
-let sessionFlags: string[] = []; 
-
-const logFlag = (flag: string) => {
-  if (!sessionFlags.includes(flag)) {
-    sessionFlags.push(flag);
-  }
-};
-
-export const initializeExtensionMonitoring = (config: SessionConfig | undefined) => {
-  sessionFlags = []; 
-  if (extensionHandshakeIntervalId) {
-    clearInterval(extensionHandshakeIntervalId);
-    extensionHandshakeIntervalId = undefined;
-  }
-  extensionFailureCount = 0;
-
-  if (config && config.enableExtensionCheck) {
-    currentExtensionStatus = 'Not Connected'; 
-
-    extensionHandshakeIntervalId = setInterval(async () => {
-      try {
-        const res = await fetch("http://localhost:4201/handshake");
-        if (res.ok) {
-          currentExtensionStatus = 'Connected';
-          extensionFailureCount = 0;
-        } else {
-          extensionFailureCount++;
-        }
-      } catch {
-        extensionFailureCount++;
-      }
-
-      if (extensionFailureCount >= 3) {
-        if (currentExtensionStatus !== 'Inactive') {
-          logFlag('Extension became inactive mid-session');
-        }
-        currentExtensionStatus = 'Inactive';
-        if (extensionHandshakeIntervalId) {
-            clearInterval(extensionHandshakeIntervalId);
-            extensionHandshakeIntervalId = undefined;
-        }
-      }
-    }, 10000);
-  } else {
-    currentExtensionStatus = 'Not Required';
-  }
-};
-
-export const finalizeExtensionMonitoring = (config: SessionConfig | undefined) => {
-  if (extensionHandshakeIntervalId) {
-    clearInterval(extensionHandshakeIntervalId);
-    extensionHandshakeIntervalId = undefined;
-  }
-  if (config && config.enableExtensionCheck && currentExtensionStatus === 'Not Connected') {
-      logFlag('Extension not connected');
-  }
-};
-
 export class DetectionEngine {
-  static analyze(
-    typingEvents: TypingEvent[], 
-    code: string, 
-    sessionDuration: number, 
-    config: SessionConfig | undefined
-  ): DetectionResult {
+  static analyze(typingEvents: TypingEvent[], code: string, sessionDuration: number): DetectionResult {
     const keydownEvents = typingEvents.filter(e => e.type === 'keydown');
     const pasteEvents = typingEvents.filter(e => e.type === 'paste');
+    const backspaceEvents = keydownEvents.filter(e => e.key === 'Backspace');
 
+    // Calculate detailed metrics
     const metrics = this.calculateMetrics(typingEvents, sessionDuration);
-    const currentSessionFlags = [...sessionFlags];
-    const suspiciousActivities: string[] = []; 
+    
+    // Run detection algorithms
+    const suspiciousActivities: string[] = [];
     let suspicionScore = 0;
     let forceAIAssisted = false;
 
-    if (config && config.enableExtensionCheck) {
-      currentSessionFlags.forEach(flag => {
-        if (flag === 'Extension became inactive mid-session') {
-          if (!suspiciousActivities.includes(flag)) suspiciousActivities.push(flag);
-          suspicionScore += 15;
-        } else if (flag === 'Extension not connected') {
-          if (!suspiciousActivities.includes(flag)) suspiciousActivities.push(flag);
-          suspicionScore += 10;
-        }
-      });
-    }
+    console.log("=== Detection Engine Analysis ===");
+    console.log("Metrics:", metrics);
 
+    // NEW FEATURE 1 & 2: Large paste detection with bypass prevention
     const hasUserTyped = keydownEvents.length > 0;
     const largePasteEvents = pasteEvents.filter(e => (e.textLength || 0) >= 160);
     
     if (largePasteEvents.length > 0) {
-      const activity = `Large paste content detected (>=160 chars)`; 
-      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
+      const activity = `Large paste content detected (≥160 chars)`;
+      suspiciousActivities.push(activity);
       forceAIAssisted = true;
+      console.log("Flag: Large paste detected - forcing AI Assisted verdict");
       
       if (hasUserTyped) {
-        const specificActivity = 'Pasted AI code after initial manual typing';
-        if (!suspiciousActivities.includes(specificActivity)) suspiciousActivities.push(specificActivity);
+        suspiciousActivities.push('Pasted AI code after initial manual typing');
+        console.log("Flag: Manual typing before large paste detected");
       }
     }
 
+    // Speed analysis
     if (metrics.avgWPM > 120) {
       const activity = `Extremely fast average typing: ${metrics.avgWPM} WPM`;
-      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
+      suspiciousActivities.push(activity);
       suspicionScore += 30;
+      console.log("Flag: High average WPM +30");
     }
     if (metrics.maxWPM > 200) {
       const activity = `Unrealistic peak typing speed: ${metrics.maxWPM} WPM`;
-      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
+      suspiciousActivities.push(activity);
       suspicionScore += 25;
+      console.log("Flag: Unrealistic peak WPM +25");
     }
+
+    // Consistency analysis
     if (metrics.typingConsistency > 0.8 && metrics.avgWPM > 80) {
-      const activity = 'Robotic typing consistency detected';
-      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
+      suspiciousActivities.push('Robotic typing consistency detected');
       suspicionScore += 20;
+      console.log("Flag: Robotic consistency +20");
     }
+
+    // Error rate analysis
     if (metrics.backspaceRatio < 0.02 && code.length > 100) {
       const activity = `Unnaturally low error rate: ${(metrics.backspaceRatio * 100).toFixed(1)}%`;
-      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
+      suspiciousActivities.push(activity);
       suspicionScore += 15;
+      console.log("Flag: Low error rate +15");
     }
+
+    // Paste behavior
     if (metrics.pasteCount > 2) {
       const activity = `Multiple paste operations: ${metrics.pasteCount}`;
-      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
+      suspiciousActivities.push(activity);
       suspicionScore += 10 * metrics.pasteCount;
+      console.log(`Flag: Multiple pastes +${10 * metrics.pasteCount}`);
     }
+
+    // Burst typing detection
     if (metrics.burstTypingEvents > 3) {
-      const activity = 'Multiple burst typing patterns detected';
-      if (!suspiciousActivities.includes(activity)) suspiciousActivities.push(activity);
+      suspiciousActivities.push('Multiple burst typing patterns detected');
       suspicionScore += 15;
+      console.log("Flag: Burst typing +15");
     }
 
+    // Code pattern analysis
     const codeAnalysis = this.analyzeCodePatterns(code);
-    codeAnalysis.suspiciousPatterns.forEach(p => {
-      if(!suspiciousActivities.includes(p)) suspiciousActivities.push(p);
-    });
+    suspiciousActivities.push(...codeAnalysis.suspiciousPatterns);
     suspicionScore += codeAnalysis.suspicionScore;
+    if (codeAnalysis.suspicionScore > 0) {
+      console.log(`Flag: Code patterns +${codeAnalysis.suspicionScore}`);
+    }
 
+    console.log("Suspicion Score:", suspicionScore);
+    console.log("Suspicious Activities:", suspiciousActivities);
+
+    // Determine risk level and verdict with large paste override
     let riskLevel: 'low' | 'medium' | 'high';
     let verdict: 'human' | 'likely_bot' | 'ai_assisted';
 
@@ -175,28 +122,16 @@ export class DetectionEngine {
       riskLevel = 'low';
       verdict = 'human';
     }
-    
-    let extensionVerdictMessage = '';
-    if (config && config.enableExtensionCheck) {
-      switch (currentExtensionStatus) {
-        case 'Connected': extensionVerdictMessage = 'Extension connected during full session'; break;
-        case 'Inactive':
-        case 'Not Connected': extensionVerdictMessage = 'Extension not present or inactive'; break;
-      }
-    } else {
-      extensionVerdictMessage = 'Extension not required';
-    }
-    if (extensionVerdictMessage && !suspiciousActivities.includes(extensionVerdictMessage)) {
-      suspiciousActivities.push(extensionVerdictMessage);
-    }
+
+    console.log("Final Verdict:", verdict, "Risk Level:", riskLevel);
+    console.log("=== End Analysis ===");
 
     return {
       riskLevel,
       verdict,
       suspiciousActivities,
       confidence: suspicionScore,
-      detailedMetrics: metrics,
-      finalExtensionStatus: currentExtensionStatus
+      detailedMetrics: metrics
     };
   }
 
