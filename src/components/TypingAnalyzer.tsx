@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -84,7 +85,7 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
   }, [typingEvents, profile, onSuspiciousActivity]);
 
   return (
-    <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
+    <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-900 transition-colors">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center space-x-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
           <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -117,28 +118,28 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
               )}
             </div>
 
-            {/* Metrics Grid */}
+            {/* Refined Metrics Grid */}
             <div className="grid grid-cols-2 gap-4">
               {/* Total Keystrokes */}
-              <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 transition-all hover:shadow-md">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 p-5 rounded-xl border border-blue-200 dark:border-blue-700/50 transition-all hover:shadow-lg hover:scale-[1.02] duration-200">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <div className="text-2xl font-bold text-blue-800 dark:text-blue-200 mb-2">
                     {totalKeystrokes}
                   </div>
-                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                  <div className="text-xs font-semibold text-blue-600 dark:text-blue-300 uppercase tracking-wide">
                     Total Keystrokes
                   </div>
                 </div>
               </div>
               
               {/* Backspaces */}
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-4 rounded-xl border border-orange-200 dark:border-orange-700/50 transition-all hover:shadow-md">
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/30 p-5 rounded-xl border border-orange-200 dark:border-orange-700/50 transition-all hover:shadow-lg hover:scale-[1.02] duration-200">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-800 dark:text-orange-300 flex items-center justify-center mb-1">
+                  <div className="text-2xl font-bold text-orange-800 dark:text-orange-200 flex items-center justify-center mb-2">
                     <Delete className="h-5 w-5 mr-2" />
                     {backspaceCount}
                   </div>
-                  <div className="text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wide">
+                  <div className="text-xs font-semibold text-orange-600 dark:text-orange-300 uppercase tracking-wide">
                     Backspaces
                   </div>
                 </div>
@@ -147,25 +148,25 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               {/* Paste Events */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-xl border border-blue-200 dark:border-blue-700/50 transition-all hover:shadow-md">
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/30 p-5 rounded-xl border border-purple-200 dark:border-purple-700/50 transition-all hover:shadow-lg hover:scale-[1.02] duration-200">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-800 dark:text-blue-300 mb-1">
+                  <div className="text-2xl font-bold text-purple-800 dark:text-purple-200 mb-2">
                     {pasteCount}
                   </div>
-                  <div className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                  <div className="text-xs font-semibold text-purple-600 dark:text-purple-300 uppercase tracking-wide">
                     Paste Events
                   </div>
                 </div>
               </div>
               
               {/* Idle Pauses */}
-              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-4 rounded-xl border border-yellow-200 dark:border-yellow-700/50 transition-all hover:shadow-md">
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/30 p-5 rounded-xl border border-yellow-200 dark:border-yellow-700/50 transition-all hover:shadow-lg hover:scale-[1.02] duration-200">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-800 dark:text-yellow-300 flex items-center justify-center mb-1">
+                  <div className="text-2xl font-bold text-yellow-800 dark:text-yellow-200 flex items-center justify-center mb-2">
                     <Clock className="h-5 w-5 mr-2" />
                     {idlePauses}
                   </div>
-                  <div className="text-xs font-medium text-yellow-600 dark:text-yellow-400 uppercase tracking-wide">
+                  <div className="text-xs font-semibold text-yellow-600 dark:text-yellow-300 uppercase tracking-wide">
                     Idle Pauses
                   </div>
                   {idlePauses > profile.thresholds.maxSuspiciousIdlePauses && (
