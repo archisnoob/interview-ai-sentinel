@@ -12,6 +12,8 @@ import RiskVerdictDisplay from '@/components/RiskVerdictDisplay';
 import { apiService, TypingEvent } from '@/services/api';
 import { CANDIDATE_PROFILES, SessionVerdictEngine, CandidateProfile } from '@/services/profiles';
 import { DetectionEngine } from '@/services/detectionEngine';
+import { AIPasteDetector, AIPasteEvent } from '@/services/aiPasteDetector';
+
 const CodingInterface = () => {
   const [code, setCode] = useState('');
   const [candidateName, setCandidateName] = useState('');
@@ -22,10 +24,11 @@ const CodingInterface = () => {
   const [liveDetectionFlags, setLiveDetectionFlags] = useState<string[]>([]);
   const [tabSwitches, setTabSwitches] = useState(0);
   const [finalDetectionResult, setFinalDetectionResult] = useState<any>(null);
+  const [aiPasteEvents, setAiPasteEvents] = useState<AIPasteEvent[]>([]);
+  const [aiPasteDetector, setAiPasteDetector] = useState<AIPasteDetector | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+  
   const currentProfile = candidateType === 'Freshman Intern' ? CANDIDATE_PROFILES.intern : CANDIDATE_PROFILES.professional;
 
   // Helper function to filter out modifier keys
@@ -34,9 +37,12 @@ const CodingInterface = () => {
     return !modifierKeys.includes(key);
   };
 
-  // Track typing behavior with improved filtering
+  // Track typing behavior with improved filtering and AI detection
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!sessionActive) return;
+    if (!sessionActive || !aiPasteDetector) return;
+
+    // Record keystroke for AI detection
+    aiPasteDetector.recordKeystroke();
 
     // Only log keys that result in actual typing or content changes
     if (shouldLogKey(e.key)) {
@@ -50,8 +56,10 @@ const CodingInterface = () => {
       setTypingEvents(prev => [...prev, event]);
     }
   };
+
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    if (!sessionActive) return;
+    if (!sessionActive || !aiPasteDetector) return;
+    
     const pastedText = e.clipboardData.getData('text');
     const event: TypingEvent = {
       timestamp: Date.now(),
@@ -61,7 +69,30 @@ const CodingInterface = () => {
     };
     setTypingEvents(prev => [...prev, event]);
 
-    // NEW FEATURE: Check for large paste (≥160 characters)
+    // AI Paste Detection
+    const aiPasteEvent = aiPasteDetector.analyzePaste(pastedText);
+    setAiPasteEvents(prev => [...prev, aiPasteEvent]);
+
+    // Check for suspicious AI patterns
+    if (aiPasteEvent.looksGPTPattern) {
+      const newFlag = `AI-generated content detected in paste (${pastedText.length} chars)`;
+      setLiveDetectionFlags(prev => [...prev, newFlag]);
+      toast({
+        title: "AI Content Detected",
+        description: newFlag,
+        variant: "destructive"
+      });
+    } else if (aiPasteEvent.pauseBeforePaste && pastedText.length >= 200) {
+      const newFlag = `Suspicious paste after ${Math.round(aiPasteEvent.timeSinceLastKey / 1000)}s pause (${pastedText.length} chars)`;
+      setLiveDetectionFlags(prev => [...prev, newFlag]);
+      toast({
+        title: "Suspicious Paste Pattern",
+        description: newFlag,
+        variant: "destructive"
+      });
+    }
+
+    // Original large paste detection
     if (pastedText.length >= 160) {
       const newFlag = `Large paste content detected (≥${pastedText.length} chars)`;
       setLiveDetectionFlags(prev => [...prev, newFlag]);
@@ -99,6 +130,7 @@ const CodingInterface = () => {
     window.addEventListener('blur', handleBlur);
     return () => window.removeEventListener('blur', handleBlur);
   }, [sessionActive, tabSwitches, toast]);
+
   const startSession = () => {
     if (!candidateName.trim()) {
       toast({
@@ -108,17 +140,25 @@ const CodingInterface = () => {
       });
       return;
     }
+    
+    const sessionId = `${candidateName}_${Date.now()}`;
+    const detector = new AIPasteDetector(sessionId);
+    setAiPasteDetector(detector);
+    
     setSessionActive(true);
     setSessionStartTime(Date.now());
     setTypingEvents([]);
     setLiveDetectionFlags([]);
     setTabSwitches(0);
     setFinalDetectionResult(null);
+    setAiPasteEvents([]);
+    
     toast({
       title: "Session Started",
-      description: `Monitoring ${candidateType} behavior`
+      description: `Monitoring ${candidateType} behavior with AI detection`
     });
   };
+
   const endSession = async () => {
     if (!sessionStartTime) return;
 
@@ -137,6 +177,7 @@ const CodingInterface = () => {
     const totalTime = sessionDuration / 1000 / 60; // in minutes
     const totalWPM = totalTime > 0 ? Math.round(keydownEvents.length / 5 / totalTime) : 0;
     const linesOfCode = code.split('\n').length;
+    
     try {
       await apiService.saveSession({
         candidateName,
@@ -151,9 +192,13 @@ const CodingInterface = () => {
           totalTime: Math.round(totalTime * 100) / 100,
           linesOfCode,
           typingBursts: detectionResult.detailedMetrics.burstTypingEvents
-        }
+        },
+        aiPasteEvents // Add AI paste events to session data
       });
+      
       setSessionActive(false);
+      setAiPasteDetector(null);
+      
       toast({
         title: "Session Completed",
         description: `Verdict: ${detectionResult.verdict} (Confidence: ${detectionResult.confidence})`,
@@ -167,23 +212,33 @@ const CodingInterface = () => {
       });
     }
   };
+
   const runCode = () => {
     toast({
       title: "Code Execution",
       description: "In a real environment, this would execute the code safely"
     });
   };
+
   const getVerdictColor = () => {
     if (liveDetectionFlags.length === 0) return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
     if (liveDetectionFlags.length >= 2) return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
     return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
   };
+
   const getVerdictIcon = () => {
     if (liveDetectionFlags.length === 0) return <CheckCircle className="h-4 w-4" />;
     if (liveDetectionFlags.length >= 2) return <AlertTriangle className="h-4 w-4" />;
     return <Clock className="h-4 w-4" />;
   };
-  return <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  // Check for AI-related flags
+  const hasAIDetection = aiPasteEvents.some(event => 
+    event.looksGPTPattern || (event.pauseBeforePaste && event.pasteLength >= 200)
+  );
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Coding Area */}
       <div className="lg:col-span-2 space-y-6">
         <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
@@ -197,13 +252,21 @@ const CodingInterface = () => {
                     {liveDetectionFlags.length === 0 ? 'Normal' : liveDetectionFlags.length >= 2 ? 'High Risk' : 'Suspicious'}
                   </span>
                 </Badge>
-                {sessionActive && liveDetectionFlags.length > 0 && <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">
+                {sessionActive && liveDetectionFlags.length > 0 && (
+                  <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">
                     {liveDetectionFlags.length} flags
-                  </Badge>}
+                  </Badge>
+                )}
+                {hasAIDetection && (
+                  <Badge variant="destructive" className="text-xs">
+                    ⚠ AI Content
+                  </Badge>
+                )}
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4 bg-gray-900">
+            {/* ... keep existing code (form inputs and profile information) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <input type="text" placeholder="Candidate Name" value={candidateName} onChange={e => setCandidateName(e.target.value)} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" disabled={sessionActive} />
               
@@ -281,19 +344,31 @@ const CodingInterface = () => {
 
       {/* Monitoring Panel */}
       <div className="space-y-6">
-        <TypingAnalyzer typingEvents={typingEvents} isActive={sessionActive} profile={currentProfile} onSuspiciousActivity={activity => {
-        setLiveDetectionFlags(prev => [...prev, activity]);
-        toast({
-          title: "Suspicious Activity",
-          description: activity,
-          variant: "destructive"
-        });
-      }} />
+        <TypingAnalyzer 
+          typingEvents={typingEvents} 
+          isActive={sessionActive} 
+          profile={currentProfile} 
+          onSuspiciousActivity={activity => {
+            setLiveDetectionFlags(prev => [...prev, activity]);
+            toast({
+              title: "Suspicious Activity",
+              description: activity,
+              variant: "destructive"
+            });
+          }}
+          aiPasteEvents={aiPasteEvents}
+        />
         
-        <RealTimeMonitor isActive={sessionActive} tabSwitches={tabSwitches} onSuspiciousActivity={activity => {
-        setLiveDetectionFlags(prev => [...prev, activity]);
-      }} />
+        <RealTimeMonitor 
+          isActive={sessionActive} 
+          tabSwitches={tabSwitches} 
+          onSuspiciousActivity={activity => {
+            setLiveDetectionFlags(prev => [...prev, activity]);
+          }} 
+        />
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default CodingInterface;
