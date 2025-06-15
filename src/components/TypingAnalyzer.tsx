@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Clock, Copy, Pause, AlertTriangle, Brain, Keyboard, ArrowLeft } from 'lucide-react';
+import { Activity, Clock, Copy, Pause, AlertTriangle, Brain, Keyboard, ArrowLeft, Speedometer } from 'lucide-react';
 import { TypingEvent } from '@/services/api';
 import { CandidateProfile } from '@/services/profiles';
 import { AIPasteEvent } from '@/services/aiPasteDetector';
@@ -29,9 +28,44 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
     pasteEvents: 0,
     idlePauses: 0
   });
+  const [wpm, setWpm] = useState(0);
 
   const [keystrokeData, setKeystrokeData] = useState<{ time: number; value: number }[]>([]);
   const [backspaceData, setBackspaceData] = useState<{ time: number; value: number }[]>([]);
+
+  // WPM calculation effect
+  useEffect(() => {
+    if (!isActive) {
+      setWpm(0);
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      const firstEventTime = typingEvents[0]?.timestamp;
+      if (!firstEventTime) {
+        setWpm(0);
+        return;
+      }
+      
+      // Filter for character keys, excluding backspace and other non-printing keys
+      const charKeydownEvents = typingEvents.filter(e => 
+        e.type === 'keydown' && 
+        e.key !== 'Backspace' && 
+        e.key.length === 1
+      );
+      
+      const elapsedMinutes = (Date.now() - firstEventTime) / 1000 / 60;
+
+      if (elapsedMinutes > 0) {
+        const grossWpm = (charKeydownEvents.length / 5) / elapsedMinutes;
+        setWpm(grossWpm);
+      } else {
+        setWpm(0);
+      }
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [isActive, typingEvents]);
 
   // Calculate typing statistics
   useEffect(() => {
@@ -222,6 +256,21 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* WPM Display */}
+        <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/30 dark:to-indigo-800/20 border border-indigo-200 dark:border-indigo-700/50 hover:shadow-md transition-all duration-200">
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-indigo-600 dark:bg-indigo-500 rounded-lg">
+              <Speedometer className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Current WPM</p>
+              <p className={`text-lg font-bold text-gray-900 dark:text-gray-100`}>
+                {isActive ? wpm.toFixed(0) : '0'}
+              </p>
             </div>
           </div>
         </div>
