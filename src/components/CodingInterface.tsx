@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,54 +40,47 @@ const CodingInterface = () => {
 
   const addLiveFlag = (newFlag: string) => {
     const MAX_TOTAL_FLAGS = 30;
-    const MAX_FLAGS_PER_TYPE = 5; // Reduced from 10 as per request
+    const MAX_FLAGS_PER_TYPE = 5;
 
+    // Expanded list of prefixes to better identify flag types
     const flagTypePrefixes = [
       'Excessive idle pauses detected',
       'Large paste detected',
       'AI-generated content detected in paste',
       'Suspicious paste after',
       'Large paste content detected',
-      'Excessive tab switching detected'
+      'Excessive tab switching detected',
+      'Rapid typing',
+      'Unnatural typing rhythm'
     ];
 
-    // FIX: getBaseMessage now correctly handles flags that already have a count,
-    // preventing new flags from being created by mistake.
     const getBaseMessage = (flag: string): string => {
-      const flagWithoutCount = flag.replace(/\s\(x\d+\)$/, '');
-      const foundPrefix = flagTypePrefixes.find(prefix => flagWithoutCount.startsWith(prefix));
+      const foundPrefix = flagTypePrefixes.find(prefix => flag.startsWith(prefix));
       if (foundPrefix) {
         return foundPrefix;
       }
-      return flagWithoutCount.split(':')[0].trim();
+      // Fallback for flags with details after a colon, e.g. "Large paste detected: 200 characters"
+      return flag.split(':')[0].trim();
     };
     
     const baseMessage = getBaseMessage(newFlag);
 
     setLiveDetectionFlags(prev => {
-        const existingFlagIndex = prev.findIndex(f => getBaseMessage(f) === baseMessage);
+        // Count how many flags of this type already exist
+        const countForType = prev.filter(f => getBaseMessage(f) === baseMessage).length;
 
-        if (existingFlagIndex !== -1) {
-            // Found existing flag type, update count
-            const existingFlag = prev[existingFlagIndex];
-            const countMatch = existingFlag.match(/\(x(\d+)\)/);
-            const currentCount = countMatch ? parseInt(countMatch[1], 10) : 1;
-            
-            if (currentCount >= MAX_FLAGS_PER_TYPE) {
-                return prev; // Max for this type reached
-            }
-
-            const newCount = currentCount + 1;
-            const updatedFlags = [...prev];
-            updatedFlags[existingFlagIndex] = `${baseMessage} (x${newCount})`;
-            return updatedFlags;
-        } else {
-            // This is a new type of flag
-            if (prev.length >= MAX_TOTAL_FLAGS) {
-                return prev; // Max total flags reached
-            }
-            return [...prev, newFlag]; // Add the original, detailed flag message for the first occurrence
+        // Check if the limit for this specific flag type has been reached
+        if (countForType >= MAX_FLAGS_PER_TYPE) {
+            return prev;
         }
+
+        // Check if the total flag limit has been reached
+        if (prev.length >= MAX_TOTAL_FLAGS) {
+            return prev;
+        }
+        
+        // Add the new flag if limits are not reached
+        return [...prev, newFlag];
     });
   };
 
