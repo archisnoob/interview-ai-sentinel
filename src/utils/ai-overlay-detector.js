@@ -22,6 +22,34 @@ const isDevSafeEnvironment = () => {
   return devSafeSites.some(site => currentURL.includes(site));
 };
 
+// NEW helper function to robustly check if an element is visible to the user
+const isElementVisible = (el) => {
+  if (!el || !document.body.contains(el)) {
+    return false;
+  }
+
+  // An element is not visible if it or an ancestor has display: none.
+  // 'offsetParent' is null for such elements, except for 'position: fixed'.
+  if (el.offsetParent === null && window.getComputedStyle(el).position !== 'fixed') {
+    return false;
+  }
+  
+  const style = window.getComputedStyle(el);
+  if (style.visibility === 'hidden' || parseFloat(style.opacity) < 0.1) {
+    return false;
+  }
+
+  const rect = el.getBoundingClientRect();
+  return (
+    rect.width > 0 &&
+    rect.height > 0 &&
+    rect.top < window.innerHeight &&
+    rect.bottom > 0 &&
+    rect.left < window.innerWidth &&
+    rect.right > 0
+  );
+};
+
 // Public function to control session state from outside
 export function setDetectionSessionActive(active) {
   sessionActive = active;
@@ -48,7 +76,7 @@ export function startAIOverlayDetection() {
   let detectionLog = [];
   let shadowDOMNodes = new Set();
   
-  // Known AI tool selectors and patterns
+  // Known AI tool selectors and patterns - ADDED Gemini and PoE
   const AI_SELECTORS = [
     // ChatGPT and OpenAI
     '[class*="chatgpt"]', '[id*="chatgpt"]', '[data-testid*="chat"]',
@@ -63,6 +91,8 @@ export function startAIOverlayDetection() {
     // Generic AI patterns
     '[class*="ai-assist"]', '[class*="ai-chat"]', '[class*="assistant"]',
     '[class*="gpt"]', '[id*="ai-"]', '[data-ai]',
+    // ADDED: Gemini and PoE
+    '[class*="gemini"]', '[id*="gemini"]', '[class*="poe-"]', '[id*="poe-"]',
     // Floating widgets
     '[style*="position: fixed"]', '[style*="z-index: 9999"]'
   ];
@@ -117,7 +147,7 @@ export function startAIOverlayDetection() {
     }
   };
 
-  // 1. Respect DOM Elements with data-ignore-ai-scan="true"
+  // 1. Respect DOM Elements with data-ignore-ai-scan="true" and check visibility
   const scanForAIElements = () => {
     if (!sessionActive || isDevSafeEnvironment()) return;
     console.log('[AI Scan] Scanning for AI selectors at', new Date().toISOString());
@@ -128,17 +158,23 @@ export function startAIOverlayDetection() {
         elements.forEach(el => {
           // SKIP if this element or ancestor has the ignore attribute
           if (el.closest('[data-ignore-ai-scan="true"]')) {
-            console.log('[AI Scan] Skipped element for selector:', selector, 'Reason: data-ignore-ai-scan present');
+            // console.log('[AI Scan] Skipped element for selector:', selector, 'Reason: data-ignore-ai-scan present');
             return;
           }
+          
+          // NEW: Skip if element is not visible
+          if (!isElementVisible(el)) {
+            // console.log('[AI Scan] Skipped non-visible element for selector:', selector, el);
+            return;
+          }
+
           if (!el.dataset.aiDetected) {
             el.dataset.aiDetected = 'true';
             // Only trigger warning/flag for actual recognized AI overlays/assistants
-            // NOT generic high-z-index/fixed UI components. We'll use selector as indicator and ignore ultra-generic selectors below.
-            // Only log if selector matches a genuine AI tool indicator:
             const isLikelyAITool = [
-              'chatgpt', 'claude', 'anthropic', 'cursor', 'parakit', 'copilot', 'ai-assist', 'ai-chat', 'assistant', 'gpt'
-            ].some(aiKey => selector.includes(aiKey));
+              'chatgpt', 'claude', 'anthropic', 'cursor', 'parakit', 'copilot', 'ai-assist', 'ai-chat', 'assistant', 'gpt', 'gemini', 'poe'
+            ].some(aiKey => selector.toLowerCase().includes(aiKey));
+            
             if (isLikelyAITool) {
               logDetection('ai_selector_detected', {
                 selector,
@@ -146,10 +182,10 @@ export function startAIOverlayDetection() {
                 className: el.className,
                 id: el.id
               });
-              console.log('[AI Scan] Flagged AI overlay/assistant:', selector, el);
+              console.log('[AI Scan] Flagged VISIBLE AI overlay/assistant:', selector, el);
             } else {
-              // Suppress alerts for generic UI
-              console.log('[AI Scan] Matched generic selector, but not AI tool:', selector, el);
+              // Suppress alerts for generic UI (like high z-index) but still log for diagnostics
+              console.log('[AI Scan] Matched generic selector, but not a specific AI tool:', selector, el);
             }
           }
         });
@@ -162,30 +198,28 @@ export function startAIOverlayDetection() {
   // 1 & 3. Respect data-ignore-ai-scan and only warn for *true* overlays
   const scanForSuspiciousOverlays = () => {
     if (!sessionActive || isDevSafeEnvironment()) return;
-    console.log('[AI Scan] Scanning for suspicious overlays at', new Date().toISOString());
+    console.log('[AI Scan] Checking for suspicious overlays (diagnostics only) at', new Date().toISOString());
 
     const allElements = document.querySelectorAll('*');
     allElements.forEach(el => {
       if (el.closest('[data-ignore-ai-scan="true"]')) {
-        console.log('[AI Scan] Skipped overlay candidate:', el, 'Reason: data-ignore-ai-scan present');
         return;
       }
+      
+      // NEW: Skip if element is not visible
+      if (!isElementVisible(el)) {
+        return;
+      }
+
       const style = window.getComputedStyle(el);
       const zIndex = parseInt(style.zIndex, 10);
 
-      // From legacy logic: We no longer flag just on high z-index or fixed; need actual AI signature as well (see scanForAIElements).
-      // So here, we only log overlays if they match likely known AI selectors.
-      // If you want to extend, you can add known AI overlay classes/z-index combos here in future.
-
-      // (We still mark overlays for internal diagnostics/logs if desired:)
       if (zIndex > 9999 && 
           (style.position === 'fixed' || style.position === 'absolute') &&
           !el.dataset.overlayDetected) {
         el.dataset.overlayDetected = 'true';
-        // Only log if we have evidence from scanForAIElements that this element (or ancestry) was AI-marked.
-        // Otherwise, just log to debug.
-        console.log('[AI Scan] Found high z-index/fixed overlay, NOT flagged as AI (informational only):', el);
-        // (Do not use logDetection() here unless a verified AI element.)
+        // Only log to debug, do not trigger alerts for generic overlays.
+        console.log('[AI Scan] Found high z-index/fixed VISIBLE overlay (informational only):', el);
       }
     });
   };
@@ -288,24 +322,9 @@ export function startAIOverlayDetection() {
     attributeFilter: ['class', 'id', 'style']
   });
 
-  // Initial scan (only if session active)
-  if (sessionActive && !isDevSafeEnvironment()) {
-    scanForAIElements();
-    scanForSuspiciousOverlays();
-  }
-
-  // Periodic checks with session control (every 5 seconds)
-  const periodicCheck = setInterval(() => {
-    if (sessionActive && !isDevSafeEnvironment()) {
-      scanForAIElements();
-      scanForSuspiciousOverlays();
-    }
-  }, 5000);
-
   // Cleanup function
   return () => {
     observer.disconnect();
-    clearInterval(periodicCheck);
   };
 }
 
