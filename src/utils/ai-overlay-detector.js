@@ -1,4 +1,3 @@
-
 // AI Overlay Detection System
 // Monitors for AI assistant overlays, chat widgets, and suspicious DOM injections
 
@@ -31,8 +30,17 @@ export function setDetectionSessionActive(active) {
     aiWarningShown = false;
     lastAlertTime = 0;
     console.log('AI detection activated for session');
+    if (typeof window !== "undefined") {
+      // Start scanning when session starts
+      if (!window.__aiScanIntervalActive__) {
+        window.__aiScanIntervalActive__ = true;
+        scanLoop();
+      }
+    }
   } else {
     console.log('AI detection deactivated');
+    // Pause scan timer until re-activated
+    window.__aiScanIntervalActive__ = false;
   }
 }
 
@@ -87,7 +95,7 @@ export function startAIOverlayDetection() {
     
     detectionLog.push(event);
     console.warn("⚠️ AI overlay detected:", event);
-    
+
     // Throttled alert system - show only once per session or after 10 second intervals
     if (!aiWarningShown || (now - lastAlertTime > 10000)) {
       setTimeout(() => {
@@ -96,7 +104,7 @@ export function startAIOverlayDetection() {
       aiWarningShown = true;
       lastAlertTime = now;
     }
-    
+
     // Optional: Send to backend (only if session active)
     try {
       fetch('/log/ai-overlay', {
@@ -109,22 +117,40 @@ export function startAIOverlayDetection() {
     }
   };
 
-  // Check for AI-related selectors (only during active session)
+  // 1. Respect DOM Elements with data-ignore-ai-scan="true"
   const scanForAIElements = () => {
     if (!sessionActive || isDevSafeEnvironment()) return;
-    
+    console.log('[AI Scan] Scanning for AI selectors at', new Date().toISOString());
+
     AI_SELECTORS.forEach(selector => {
       try {
         const elements = document.querySelectorAll(selector);
         elements.forEach(el => {
+          // SKIP if this element or ancestor has the ignore attribute
+          if (el.closest('[data-ignore-ai-scan="true"]')) {
+            console.log('[AI Scan] Skipped element for selector:', selector, 'Reason: data-ignore-ai-scan present');
+            return;
+          }
           if (!el.dataset.aiDetected) {
             el.dataset.aiDetected = 'true';
-            logDetection('ai_selector_detected', {
-              selector,
-              tagName: el.tagName,
-              className: el.className,
-              id: el.id
-            });
+            // Only trigger warning/flag for actual recognized AI overlays/assistants
+            // NOT generic high-z-index/fixed UI components. We'll use selector as indicator and ignore ultra-generic selectors below.
+            // Only log if selector matches a genuine AI tool indicator:
+            const isLikelyAITool = [
+              'chatgpt', 'claude', 'anthropic', 'cursor', 'parakit', 'copilot', 'ai-assist', 'ai-chat', 'assistant', 'gpt'
+            ].some(aiKey => selector.includes(aiKey));
+            if (isLikelyAITool) {
+              logDetection('ai_selector_detected', {
+                selector,
+                tagName: el.tagName,
+                className: el.className,
+                id: el.id
+              });
+              console.log('[AI Scan] Flagged AI overlay/assistant:', selector, el);
+            } else {
+              // Suppress alerts for generic UI
+              console.log('[AI Scan] Matched generic selector, but not AI tool:', selector, el);
+            }
           }
         });
       } catch (e) {
@@ -132,6 +158,60 @@ export function startAIOverlayDetection() {
       }
     });
   };
+
+  // 1 & 3. Respect data-ignore-ai-scan and only warn for *true* overlays
+  const scanForSuspiciousOverlays = () => {
+    if (!sessionActive || isDevSafeEnvironment()) return;
+    console.log('[AI Scan] Scanning for suspicious overlays at', new Date().toISOString());
+
+    const allElements = document.querySelectorAll('*');
+    allElements.forEach(el => {
+      if (el.closest('[data-ignore-ai-scan="true"]')) {
+        console.log('[AI Scan] Skipped overlay candidate:', el, 'Reason: data-ignore-ai-scan present');
+        return;
+      }
+      const style = window.getComputedStyle(el);
+      const zIndex = parseInt(style.zIndex, 10);
+
+      // From legacy logic: We no longer flag just on high z-index or fixed; need actual AI signature as well (see scanForAIElements).
+      // So here, we only log overlays if they match likely known AI selectors.
+      // If you want to extend, you can add known AI overlay classes/z-index combos here in future.
+
+      // (We still mark overlays for internal diagnostics/logs if desired:)
+      if (zIndex > 9999 && 
+          (style.position === 'fixed' || style.position === 'absolute') &&
+          !el.dataset.overlayDetected) {
+        el.dataset.overlayDetected = 'true';
+        // Only log if we have evidence from scanForAIElements that this element (or ancestry) was AI-marked.
+        // Otherwise, just log to debug.
+        console.log('[AI Scan] Found high z-index/fixed overlay, NOT flagged as AI (informational only):', el);
+        // (Do not use logDetection() here unless a verified AI element.)
+      }
+    });
+  };
+
+  // ⏱️ 2. Reliable 3–5 Second Scanning Interval, only while sessionActive
+  function randomIntervalDelay() {
+    // Return a value between 3000–5000 ms
+    return 3000 + Math.floor(Math.random() * 2000);
+  }
+
+  // Periodic scan loop with proper pausing + re-entry
+  function scanLoop() {
+    if (!sessionActive || isDevSafeEnvironment()) {
+      window.__aiScanIntervalActive__ = false;
+      return;
+    }
+    scanForAIElements();
+    scanForSuspiciousOverlays();
+
+    // Schedule the next scan only if session still active
+    if (window.__aiScanIntervalActive__ && sessionActive) {
+      setTimeout(() => scanLoop(), randomIntervalDelay());
+    } else {
+      window.__aiScanIntervalActive__ = false;
+    }
+  }
 
   // Check for AI-related text content (only during active session)
   const scanForAIText = (node) => {
@@ -164,31 +244,6 @@ export function startAIOverlayDetection() {
         id: node.id
       });
     }
-  };
-
-  // Check for suspicious high z-index overlays (only during active session)
-  const scanForSuspiciousOverlays = () => {
-    if (!sessionActive || isDevSafeEnvironment()) return;
-    
-    const allElements = document.querySelectorAll('*');
-    allElements.forEach(el => {
-      const style = window.getComputedStyle(el);
-      const zIndex = parseInt(style.zIndex, 10);
-      
-      if (zIndex > 9999 && 
-          (style.position === 'fixed' || style.position === 'absolute') &&
-          !el.dataset.overlayDetected) {
-        
-        el.dataset.overlayDetected = 'true';
-        logDetection('suspicious_overlay_detected', {
-          tagName: el.tagName,
-          zIndex,
-          position: style.position,
-          className: el.className,
-          id: el.id
-        });
-      }
-    });
   };
 
   // MutationObserver callback (respects session state)
