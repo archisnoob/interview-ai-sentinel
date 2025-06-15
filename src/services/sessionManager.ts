@@ -1,4 +1,12 @@
 
+// Extend Window interface to include custom properties
+declare global {
+  interface Window {
+    detectionLog?: any[];
+    aiOverlayLog?: any[];
+  }
+}
+
 export interface SessionState {
   candidateName: string;
   candidateType: 'Freshman Intern' | 'Pro/Competitive Coder';
@@ -78,14 +86,16 @@ export class SessionManager {
 
   // Clear any temporary log files (frontend only)
   private clearTemporaryLogs(): void {
-    // Clear any cached detection logs
-    if (window.detectionLog) {
-      window.detectionLog = [];
-    }
+    // Clear any cached detection logs with safe property access
+    if (typeof window !== 'undefined') {
+      if (window.detectionLog) {
+        window.detectionLog = [];
+      }
 
-    // Reset AI overlay detection log if exists
-    if (window.aiOverlayLog) {
-      window.aiOverlayLog = [];
+      // Reset AI overlay detection log if exists
+      if (window.aiOverlayLog) {
+        window.aiOverlayLog = [];
+      }
     }
   }
 
@@ -118,7 +128,7 @@ export class SessionManager {
         })
       });
     } catch (error) {
-      console.log('Backend cleanup notification failed (endpoint may not exist):', error.message);
+      console.log('Backend cleanup notification failed (endpoint may not exist):', error);
     }
   }
 
