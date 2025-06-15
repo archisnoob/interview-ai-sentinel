@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,8 @@ const CodingInterface = () => {
       'Unnatural typing rhythm'
     ];
 
+    // Extracts the base category from a detailed flag message to enable per-type counting.
+    // e.g., "Rapid typing: 150 WPM" becomes "Rapid typing".
     const getBaseMessage = (flag: string): string => {
       const foundPrefix = flagTypePrefixes.find(prefix => flag.startsWith(prefix));
       if (foundPrefix) {
@@ -66,20 +69,20 @@ const CodingInterface = () => {
     const baseMessage = getBaseMessage(newFlag);
 
     setLiveDetectionFlags(prev => {
-        // Count how many flags of this type already exist
+        // First, count how many flags of this specific type already exist.
         const countForType = prev.filter(f => getBaseMessage(f) === baseMessage).length;
 
-        // Check if the limit for this specific flag type has been reached
+        // If the limit for this specific flag type is reached, ignore the new flag and don't update state.
         if (countForType >= MAX_FLAGS_PER_TYPE) {
             return prev;
         }
 
-        // Check if the total flag limit has been reached
+        // Next, check if the total flag limit has been reached.
         if (prev.length >= MAX_TOTAL_FLAGS) {
             return prev;
         }
         
-        // Add the new flag if limits are not reached
+        // If no limits are hit, add the new flag.
         return [...prev, newFlag];
     });
   };
