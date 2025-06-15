@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,53 @@ const CodingInterface = () => {
   const { toast } = useToast();
   
   const currentProfile = candidateType === 'Freshman Intern' ? CANDIDATE_PROFILES.intern : CANDIDATE_PROFILES.professional;
+
+  const addLiveFlag = (newFlag: string) => {
+    const MAX_TOTAL_FLAGS = 30;
+    const MAX_FLAGS_PER_TYPE = 10;
+
+    const flagTypePrefixes = [
+      'Excessive idle pauses detected',
+      'Large paste detected',
+      'AI-generated content detected in paste',
+      'Suspicious paste after',
+      'Large paste content detected',
+      'Excessive tab switching detected'
+    ];
+
+    const getBaseMessage = (flag: string): string => {
+      const foundPrefix = flagTypePrefixes.find(prefix => flag.startsWith(prefix));
+      return foundPrefix || flag.split(':')[0].trim();
+    };
+    
+    const baseMessage = getBaseMessage(newFlag);
+
+    setLiveDetectionFlags(prev => {
+        const existingFlagIndex = prev.findIndex(f => getBaseMessage(f) === baseMessage);
+
+        if (existingFlagIndex !== -1) {
+            // Found existing flag type, update count
+            const existingFlag = prev[existingFlagIndex];
+            const countMatch = existingFlag.match(/\(x(\d+)\)/);
+            const currentCount = countMatch ? parseInt(countMatch[1], 10) : 1;
+            
+            if (currentCount >= MAX_FLAGS_PER_TYPE) {
+                return prev; // Max for this type reached
+            }
+
+            const newCount = currentCount + 1;
+            const updatedFlags = [...prev];
+            updatedFlags[existingFlagIndex] = `${baseMessage} (x${newCount})`;
+            return updatedFlags;
+        } else {
+            // This is a new type of flag
+            if (prev.length >= MAX_TOTAL_FLAGS) {
+                return prev; // Max total flags reached
+            }
+            return [...prev, newFlag]; // Add the original, detailed flag message for the first occurrence
+        }
+    });
+  };
 
   // Reset session to clean state
   const resetSession = () => {
@@ -102,7 +150,7 @@ const CodingInterface = () => {
     // Check for suspicious AI patterns
     if (aiPasteEvent.looksGPTPattern) {
       const newFlag = `AI-generated content detected in paste (${pastedText.length} chars)`;
-      setLiveDetectionFlags(prev => [...prev, newFlag]);
+      addLiveFlag(newFlag);
       toast({
         title: "AI Content Detected",
         description: newFlag,
@@ -110,7 +158,7 @@ const CodingInterface = () => {
       });
     } else if (aiPasteEvent.pauseBeforePaste && pastedText.length >= 200) {
       const newFlag = `Suspicious paste after ${Math.round(aiPasteEvent.timeSinceLastKey / 1000)}s pause (${pastedText.length} chars)`;
-      setLiveDetectionFlags(prev => [...prev, newFlag]);
+      addLiveFlag(newFlag);
       toast({
         title: "Suspicious Paste Pattern",
         description: newFlag,
@@ -121,7 +169,7 @@ const CodingInterface = () => {
     // Original large paste detection
     if (pastedText.length >= 160) {
       const newFlag = `Large paste content detected (≥${pastedText.length} chars)`;
-      setLiveDetectionFlags(prev => [...prev, newFlag]);
+      addLiveFlag(newFlag);
       toast({
         title: "AI Assistance Detected",
         description: newFlag,
@@ -129,7 +177,7 @@ const CodingInterface = () => {
       });
     } else if (pastedText.length > currentProfile.thresholds.largePasteChars) {
       const newFlag = `Large paste detected: ${pastedText.length} characters`;
-      setLiveDetectionFlags(prev => [...prev, newFlag]);
+      addLiveFlag(newFlag);
       toast({
         title: "Suspicious Activity",
         description: newFlag,
@@ -145,7 +193,7 @@ const CodingInterface = () => {
       setTabSwitches(prev => prev + 1);
       if (tabSwitches >= 3) {
         const flag = "Excessive tab switching detected";
-        setLiveDetectionFlags(prev => [...prev, flag]);
+        addLiveFlag(flag);
         toast({
           title: "Suspicious Activity",
           description: flag,
@@ -441,7 +489,7 @@ const CodingInterface = () => {
           isActive={sessionActive} 
           profile={currentProfile} 
           onSuspiciousActivity={activity => {
-            setLiveDetectionFlags(prev => [...prev, activity]);
+            addLiveFlag(activity);
             toast({
               title: "Suspicious Activity",
               description: activity,
