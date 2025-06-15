@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Clock, Copy, Pause, AlertTriangle, Brain } from 'lucide-react';
+import { Activity, Clock, Copy, Pause, AlertTriangle, Brain, Keyboard, ArrowLeft } from 'lucide-react';
 import { TypingEvent } from '@/services/api';
 import { CandidateProfile } from '@/services/profiles';
 import { AIPasteEvent } from '@/services/aiPasteDetector';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
 interface TypingAnalyzerProps {
   typingEvents: TypingEvent[];
@@ -28,6 +29,9 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
     pasteEvents: 0,
     idlePauses: 0
   });
+
+  const [keystrokeData, setKeystrokeData] = useState<{ time: number; value: number }[]>([]);
+  const [backspaceData, setBackspaceData] = useState<{ time: number; value: number }[]>([]);
 
   // Calculate typing statistics
   useEffect(() => {
@@ -64,7 +68,45 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
       });
     }
 
-  }, [typingEvents, profile, onSuspiciousActivity]);
+    // Generate data for sparklines
+    if (isActive) {
+      if (keydownEvents.length > 1) {
+        const startTime = keydownEvents[0].timestamp;
+        const data = keydownEvents.map((e, index) => ({
+          time: (e.timestamp - startTime) / 1000,
+          value: index + 1,
+        }));
+        if (data.length > 50) {
+          const step = Math.floor(data.length / 50);
+          setKeystrokeData(data.filter((_, i) => i % step === 0));
+        } else {
+          setKeystrokeData(data);
+        }
+      } else {
+        setKeystrokeData([]);
+      }
+
+      if (backspaceEvents.length > 1) {
+        const startTime = backspaceEvents[0].timestamp;
+        const data = backspaceEvents.map((e, index) => ({
+          time: (e.timestamp - startTime) / 1000,
+          value: index + 1,
+        }));
+        if (data.length > 50) {
+          const step = Math.floor(data.length / 50);
+          setBackspaceData(data.filter((_, i) => i % step === 0));
+        } else {
+          setBackspaceData(data);
+        }
+      } else {
+        setBackspaceData([]);
+      }
+    } else {
+      setKeystrokeData([]);
+      setBackspaceData([]);
+    }
+
+  }, [typingEvents, profile, onSuspiciousActivity, isActive]);
 
   // Check for AI-related suspicious activity
   const hasAIDetection = aiPasteEvents.some(event => 
@@ -99,7 +141,7 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="p-2 bg-blue-600 dark:bg-blue-500 rounded-lg">
-                  <Activity className="h-4 w-4 text-white" />
+                  <Keyboard className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Total Keystrokes</p>
@@ -107,6 +149,15 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
                     {stats.totalKeystrokes}
                   </p>
                 </div>
+              </div>
+               <div className="w-20 h-10">
+                {isActive && keystrokeData.length > 1 && (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={keystrokeData}>
+                      <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
           </div>
@@ -116,7 +167,7 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="p-2 bg-orange-600 dark:bg-orange-500 rounded-lg">
-                  <Activity className="h-4 w-4 text-white" />
+                  <ArrowLeft className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <p className="text-xs font-medium text-orange-700 dark:text-orange-300">Backspaces</p>
@@ -124,6 +175,15 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
                     {stats.backspaces}
                   </p>
                 </div>
+              </div>
+              <div className="w-20 h-10">
+                {isActive && backspaceData.length > 1 && (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={backspaceData}>
+                      <Line type="monotone" dataKey="value" stroke="#f97316" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
           </div>

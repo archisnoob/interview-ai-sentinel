@@ -15,6 +15,7 @@ import { DetectionEngine } from '@/services/detectionEngine';
 import { AIPasteDetector, AIPasteEvent } from '@/services/aiPasteDetector';
 import { sessionManager } from '@/services/sessionManager';
 import { setDetectionSessionActive } from '@/utils/ai-overlay-detector';
+import TypingSpeedMonitor from '@/components/TypingSpeedMonitor';
 
 const CodingInterface = () => {
   // Initialize with clean state from session manager
@@ -31,6 +32,7 @@ const CodingInterface = () => {
   const [finalDetectionResult, setFinalDetectionResult] = useState<any>(cleanState.finalDetectionResult || null);
   const [aiPasteEvents, setAiPasteEvents] = useState<AIPasteEvent[]>(cleanState.aiPasteEvents || []);
   const [aiPasteDetector, setAiPasteDetector] = useState<AIPasteDetector | null>(cleanState.aiPasteDetector || null);
+  const [typingSpeed, setTypingSpeed] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   
@@ -154,6 +156,22 @@ const CodingInterface = () => {
     window.addEventListener('blur', handleBlur);
     return () => window.removeEventListener('blur', handleBlur);
   }, [sessionActive, tabSwitches, toast]);
+
+  // Calculate typing speed
+  React.useEffect(() => {
+    if (sessionActive && sessionStartTime) {
+      const interval = setInterval(() => {
+        const keydownEvents = typingEvents.filter(e => e.type === 'keydown' && shouldLogKey(e.key || ''));
+        const sessionDurationSeconds = (Date.now() - sessionStartTime) / 1000;
+        const speed = sessionDurationSeconds > 1 ? keydownEvents.length / sessionDurationSeconds : 0;
+        setTypingSpeed(speed);
+      }, 1000); // update every second
+
+      return () => clearInterval(interval);
+    } else {
+      setTypingSpeed(0);
+    }
+  }, [sessionActive, sessionStartTime, typingEvents]);
 
   const startSession = () => {
     if (!candidateName.trim()) {
@@ -432,6 +450,8 @@ const CodingInterface = () => {
           }}
           aiPasteEvents={aiPasteEvents}
         />
+        
+        <TypingSpeedMonitor speed={typingSpeed} isActive={sessionActive} />
         
         <RealTimeMonitor 
           isActive={sessionActive} 
