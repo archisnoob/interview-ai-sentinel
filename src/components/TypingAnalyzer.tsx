@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Clock, Copy, Pause, AlertTriangle, Brain, Backspace } from 'lucide-react';
+import { Activity, Clock, Copy, Pause, AlertTriangle, Brain } from 'lucide-react';
 import { TypingEvent } from '@/services/api';
 import { CandidateProfile } from '@/services/profiles';
 import { AIPasteEvent } from '@/services/aiPasteDetector';
@@ -93,11 +94,10 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
       <CardContent className="space-y-4">
         {/* Stat Grid */}
         <div className="grid grid-cols-2 gap-4">
-          {/* Combined Keystrokes and Backspaces */}
-          <div className="col-span-2 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/40 border border-slate-200 dark:border-slate-700/50 hover:shadow-md transition-all duration-200">
-            <div className="flex items-center justify-around divide-x divide-slate-200 dark:divide-slate-700">
-              {/* Total Keystrokes */}
-              <div className="flex-1 flex items-center justify-center space-x-3 px-4">
+          {/* Total Keystrokes */}
+          <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 border border-blue-200 dark:border-blue-700/50 hover:shadow-md transition-all duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
                 <div className="p-2 bg-blue-600 dark:bg-blue-500 rounded-lg">
                   <Activity className="h-4 w-4 text-white" />
                 </div>
@@ -108,11 +108,15 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Backspaces */}
-              <div className="flex-1 flex items-center justify-center space-x-3 px-4">
+          {/* Backspaces */}
+          <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20 border border-orange-200 dark:border-orange-700/50 hover:shadow-md transition-all duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
                 <div className="p-2 bg-orange-600 dark:bg-orange-500 rounded-lg">
-                  <Backspace className="h-4 w-4 text-white" />
+                  <Activity className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <p className="text-xs font-medium text-orange-700 dark:text-orange-300">Backspaces</p>
