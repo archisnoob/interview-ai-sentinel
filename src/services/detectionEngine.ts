@@ -1,3 +1,4 @@
+
 import { TypingEvent } from './api';
 
 export interface DetectionResult {
@@ -31,6 +32,21 @@ export class DetectionEngine {
     let suspicionScore = 0;
     let forceAIAssisted = false;
 
+    // NEW: Per-type flag throttling
+    const MAX_FLAGS_PER_TYPE = 5;
+    const flagCountPerType: { [key: string]: number } = {};
+
+    const tryAddActivity = (type: string, activity: string, score: number = 0): boolean => {
+      const currentCount = flagCountPerType[type] || 0;
+      if (currentCount < MAX_FLAGS_PER_TYPE) {
+        suspiciousActivities.push(activity);
+        suspicionScore += score;
+        flagCountPerType[type] = currentCount + 1;
+        return true;
+      }
+      return false;
+    };
+
     console.log("=== Detection Engine Analysis ===");
     console.log("Metrics:", metrics);
 
@@ -40,66 +56,76 @@ export class DetectionEngine {
     
     if (largePasteEvents.length > 0) {
       const activity = `Large paste content detected (≥160 chars)`;
-      suspiciousActivities.push(activity);
-      forceAIAssisted = true;
-      console.log("Flag: Large paste detected - forcing AI Assisted verdict");
+      if (tryAddActivity('large_paste', activity)) {
+        forceAIAssisted = true;
+        console.log("Flag: Large paste detected - forcing AI Assisted verdict");
+      }
       
       if (hasUserTyped) {
-        suspiciousActivities.push('Pasted AI code after initial manual typing');
-        console.log("Flag: Manual typing before large paste detected");
+        if (tryAddActivity('paste_after_typing', 'Pasted AI code after initial manual typing')) {
+          console.log("Flag: Manual typing before large paste detected");
+        }
       }
     }
 
     // Speed analysis
     if (metrics.avgWPM > 120) {
       const activity = `Extremely fast average typing: ${metrics.avgWPM} WPM`;
-      suspiciousActivities.push(activity);
-      suspicionScore += 30;
-      console.log("Flag: High average WPM +30");
+      if (tryAddActivity('high_avg_wpm', activity, 30)) {
+        console.log("Flag: High average WPM +30");
+      }
     }
     if (metrics.maxWPM > 200) {
       const activity = `Unrealistic peak typing speed: ${metrics.maxWPM} WPM`;
-      suspiciousActivities.push(activity);
-      suspicionScore += 25;
-      console.log("Flag: Unrealistic peak WPM +25");
+      if (tryAddActivity('peak_wpm', activity, 25)) {
+        console.log("Flag: Unrealistic peak WPM +25");
+      }
     }
 
     // Consistency analysis
     if (metrics.typingConsistency > 0.8 && metrics.avgWPM > 80) {
-      suspiciousActivities.push('Robotic typing consistency detected');
-      suspicionScore += 20;
-      console.log("Flag: Robotic consistency +20");
+      if (tryAddActivity('robotic_consistency', 'Robotic typing consistency detected', 20)) {
+        console.log("Flag: Robotic consistency +20");
+      }
     }
 
     // Error rate analysis
     if (metrics.backspaceRatio < 0.02 && code.length > 100) {
       const activity = `Unnaturally low error rate: ${(metrics.backspaceRatio * 100).toFixed(1)}%`;
-      suspiciousActivities.push(activity);
-      suspicionScore += 15;
-      console.log("Flag: Low error rate +15");
+      if (tryAddActivity('low_error_rate', activity, 15)) {
+        console.log("Flag: Low error rate +15");
+      }
     }
 
     // Paste behavior
     if (metrics.pasteCount > 2) {
       const activity = `Multiple paste operations: ${metrics.pasteCount}`;
-      suspiciousActivities.push(activity);
-      suspicionScore += 10 * metrics.pasteCount;
-      console.log(`Flag: Multiple pastes +${10 * metrics.pasteCount}`);
+      if (tryAddActivity('multiple_pastes', activity, 10 * metrics.pasteCount)) {
+        console.log(`Flag: Multiple pastes +${10 * metrics.pasteCount}`);
+      }
     }
 
     // Burst typing detection
     if (metrics.burstTypingEvents > 3) {
-      suspiciousActivities.push('Multiple burst typing patterns detected');
-      suspicionScore += 15;
-      console.log("Flag: Burst typing +15");
+      if (tryAddActivity('burst_typing', 'Multiple burst typing patterns detected', 15)) {
+        console.log("Flag: Burst typing +15");
+      }
     }
 
     // Code pattern analysis
     const codeAnalysis = this.analyzeCodePatterns(code);
-    suspiciousActivities.push(...codeAnalysis.suspiciousPatterns);
-    suspicionScore += codeAnalysis.suspicionScore;
-    if (codeAnalysis.suspicionScore > 0) {
-      console.log(`Flag: Code patterns +${codeAnalysis.suspicionScore}`);
+    const codeAnalysisType = 'code_analysis_event';
+    const currentCodeAnalysisCount = flagCountPerType[codeAnalysisType] || 0;
+    
+    if (currentCodeAnalysisCount < MAX_FLAGS_PER_TYPE) {
+      if (codeAnalysis.suspiciousPatterns.length > 0) {
+        suspiciousActivities.push(...codeAnalysis.suspiciousPatterns);
+        suspicionScore += codeAnalysis.suspicionScore;
+        flagCountPerType[codeAnalysisType] = currentCodeAnalysisCount + 1;
+        if (codeAnalysis.suspicionScore > 0) {
+          console.log(`Flag: Code patterns +${codeAnalysis.suspicionScore}`);
+        }
+      }
     }
 
     console.log("Suspicion Score:", suspicionScore);
