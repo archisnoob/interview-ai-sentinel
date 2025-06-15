@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Clock, Copy, Pause, AlertTriangle, Brain, Keyboard, ArrowLeft, Speedometer } from 'lucide-react';
+import { Activity, Clock, Copy, Pause, AlertTriangle, Brain, Keyboard, ArrowLeft, GaugeCircle } from 'lucide-react';
 import { TypingEvent } from '@/services/api';
 import { CandidateProfile } from '@/services/profiles';
 import { AIPasteEvent } from '@/services/aiPasteDetector';
@@ -264,7 +264,7 @@ const TypingAnalyzer: React.FC<TypingAnalyzerProps> = ({
         <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/30 dark:to-indigo-800/20 border border-indigo-200 dark:border-indigo-700/50 hover:shadow-md transition-all duration-200">
           <div className="flex items-center space-x-2">
             <div className="p-2 bg-indigo-600 dark:bg-indigo-500 rounded-lg">
-              <Speedometer className="h-4 w-4 text-white" />
+              <GaugeCircle className="h-4 w-4 text-white" />
             </div>
             <div>
               <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Current WPM</p>
