@@ -41,7 +41,7 @@ const CodingInterface = () => {
 
   const addLiveFlag = (newFlag: string) => {
     const MAX_TOTAL_FLAGS = 30;
-    const MAX_FLAGS_PER_TYPE = 10;
+    const MAX_FLAGS_PER_TYPE = 5; // Reduced from 10 as per request
 
     const flagTypePrefixes = [
       'Excessive idle pauses detected',
@@ -52,9 +52,15 @@ const CodingInterface = () => {
       'Excessive tab switching detected'
     ];
 
+    // FIX: getBaseMessage now correctly handles flags that already have a count,
+    // preventing new flags from being created by mistake.
     const getBaseMessage = (flag: string): string => {
-      const foundPrefix = flagTypePrefixes.find(prefix => flag.startsWith(prefix));
-      return foundPrefix || flag.split(':')[0].trim();
+      const flagWithoutCount = flag.replace(/\s\(x\d+\)$/, '');
+      const foundPrefix = flagTypePrefixes.find(prefix => flagWithoutCount.startsWith(prefix));
+      if (foundPrefix) {
+        return foundPrefix;
+      }
+      return flagWithoutCount.split(':')[0].trim();
     };
     
     const baseMessage = getBaseMessage(newFlag);
