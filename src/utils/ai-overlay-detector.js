@@ -5,32 +5,11 @@ import { scanForAIElements } from './ai-detection/scanForAIElements';
 import { scanForSuspiciousOverlays } from './ai-detection/scanForSuspiciousOverlays';
 import { scanForAIText } from './ai-detection/scanForAIText';
 import { scanForShadowDOM } from './ai-detection/scanForShadowDOM';
-import { registerScanLoop, setDetectionSessionActive as setSessionActive } from './ai-detection/sessionUtils';
+import { setDetectionSessionActive as setSessionActive } from './ai-detection/sessionUtils';
+import { logDetection } from './ai-detection/logging';
 
 // Public function to control session state, preserving the original external API
 export { setSessionActive as setDetectionSessionActive };
-
-function randomIntervalDelay() {
-  return 3000 + Math.floor(Math.random() * 2000);
-}
-
-function scanLoop() {
-  if (!sessionState.sessionActive || isDevSafeEnvironment()) {
-    window.__aiScanIntervalActive__ = false;
-    return;
-  }
-  scanForAIElements();
-  scanForSuspiciousOverlays();
-
-  if (window.__aiScanIntervalActive__ && sessionState.sessionActive) {
-    setTimeout(() => scanLoop(), randomIntervalDelay());
-  } else {
-    window.__aiScanIntervalActive__ = false;
-  }
-}
-
-// Register the scanLoop with the session utility so it can be started correctly
-registerScanLoop(scanLoop);
 
 export function startAIOverlayDetection() {
   const handleMutations = (mutations) => {
@@ -58,8 +37,14 @@ export function startAIOverlayDetection() {
       }
     });
     
-    scanForAIElements();
-    scanForSuspiciousOverlays();
+    const aiMatches = scanForAIElements();
+    const overlayMatches = scanForSuspiciousOverlays();
+    if (aiMatches.length > 0 || overlayMatches.length > 0) {
+      logDetection('assistant_detected_on_mutation', {
+        aiElementCount: aiMatches.length,
+        overlayCount: overlayMatches.length,
+      });
+    }
   };
 
   const observer = new MutationObserver(handleMutations);
@@ -80,5 +65,21 @@ if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', startAIOverlayDetection);
   } else {
     startAIOverlayDetection();
+  }
+
+  if (!window.__aiSentinelScanInterval) {
+    window.__aiSentinelScanInterval = setInterval(() => {
+      if (sessionState.sessionActive) {
+        const aiMatches = scanForAIElements();
+        const overlayMatches = scanForSuspiciousOverlays();
+  
+        if ((aiMatches.length > 0 || overlayMatches.length > 0)) {
+            logDetection('assistant_detected_periodic_scan', {
+                aiElementCount: aiMatches.length,
+                overlayCount: overlayMatches.length,
+              });
+        }
+      }
+    }, Math.floor(Math.random() * 2000) + 3000); // 3–5 sec
   }
 }

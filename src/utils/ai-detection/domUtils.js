@@ -1,4 +1,3 @@
-
 // Helper function to robustly check if an element is visible to the user
 export const isElementVisible = (el) => {
   if (!el || !document.body.contains(el)) {
@@ -25,4 +24,32 @@ export const isElementVisible = (el) => {
     rect.left < window.innerWidth &&
     rect.right > 0
   );
+};
+
+export const getElementScore = (el) => {
+  let score = 0;
+  try {
+    const style = window.getComputedStyle(el);
+    const zIndex = parseInt(style.zIndex, 10) || 0;
+    const position = style.position;
+    const className = el.className && typeof el.className === 'string' ? el.className.toLowerCase() : '';
+    const id = el.id ? el.id.toLowerCase() : '';
+    const innerText = el.innerText ? el.innerText.toLowerCase() : '';
+
+    if (['fixed', 'absolute'].includes(position)) score += 1;
+    if (zIndex > 9999) score += 1;
+    if (className.includes('assistant') || id.includes('ai')) score += 1;
+    if (/ask me anything|how can i help|ai assistant/i.test(innerText)) score += 1;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+        const elementArea = rect.width * rect.height;
+        const screenArea = window.innerWidth * window.innerHeight;
+        if (elementArea > 0.5 * screenArea) score += 1;
+    }
+  } catch (e) {
+    // Ignore elements that can't be processed
+  }
+  
+  return score;
 };

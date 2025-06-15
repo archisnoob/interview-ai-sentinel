@@ -4,7 +4,9 @@ const devSafeSites = [
   'localhost',
   '127.0.0.1',
   'lovable.dev',
-  'chat.openai.com',
+  'lovable.app',
+  'interview-ai-sentinel.lovable.app',
+  'openai.com',
   'claude.ai',
   'copilot.github.com'
 ];
