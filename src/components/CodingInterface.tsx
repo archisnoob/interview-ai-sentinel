@@ -14,6 +14,7 @@ import { CANDIDATE_PROFILES, SessionVerdictEngine, CandidateProfile } from '@/se
 import { DetectionEngine } from '@/services/detectionEngine';
 import { AIPasteDetector, AIPasteEvent } from '@/services/aiPasteDetector';
 import { sessionManager } from '@/services/sessionManager';
+import { setDetectionSessionActive } from '@/utils/ai-overlay-detector';
 
 const CodingInterface = () => {
   // Initialize with clean state from session manager
@@ -179,6 +180,9 @@ const CodingInterface = () => {
     setFinalDetectionResult(null);
     setAiPasteEvents([]);
     
+    // Activate AI overlay detection for this session
+    setDetectionSessionActive(true);
+    
     toast({
       title: "Session Started",
       description: `Monitoring ${candidateType} behavior with AI detection`
@@ -187,6 +191,9 @@ const CodingInterface = () => {
 
   const endSession = async () => {
     if (!sessionStartTime) return;
+
+    // Deactivate AI overlay detection
+    setDetectionSessionActive(false);
 
     // Perform final analysis using both engines
     const sessionDuration = Date.now() - sessionStartTime;

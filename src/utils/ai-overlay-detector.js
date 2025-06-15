@@ -2,6 +2,40 @@
 // AI Overlay Detection System
 // Monitors for AI assistant overlays, chat widgets, and suspicious DOM injections
 
+// Session and throttling control variables
+let sessionActive = false;
+let aiWarningShown = false;
+let lastAlertTime = 0;
+
+// Safe development URLs that should be ignored
+const devSafeSites = [
+  'localhost',
+  '127.0.0.1',
+  'lovable.dev',
+  'chat.openai.com',
+  'claude.ai',
+  'copilot.github.com'
+];
+
+// Function to check if current site is a safe development environment
+const isDevSafeEnvironment = () => {
+  const currentURL = window.location.hostname;
+  return devSafeSites.some(site => currentURL.includes(site));
+};
+
+// Public function to control session state from outside
+export function setDetectionSessionActive(active) {
+  sessionActive = active;
+  if (active) {
+    // Reset warning flag when starting new session
+    aiWarningShown = false;
+    lastAlertTime = 0;
+    console.log('AI detection activated for session');
+  } else {
+    console.log('AI detection deactivated');
+  }
+}
+
 export function startAIOverlayDetection() {
   let detectionLog = [];
   let shadowDOMNodes = new Set();
@@ -36,8 +70,14 @@ export function startAIOverlayDetection() {
     /parakit/i
   ];
 
-  // Log detection event
+  // Enhanced log detection with session and throttling control
   const logDetection = (type, details) => {
+    // Only proceed if session is active and not in dev environment
+    if (!sessionActive || isDevSafeEnvironment()) {
+      return;
+    }
+
+    const now = Date.now();
     const event = {
       type,
       timestamp: new Date().toISOString(),
@@ -48,12 +88,16 @@ export function startAIOverlayDetection() {
     detectionLog.push(event);
     console.warn("⚠️ AI overlay detected:", event);
     
-    // Show alert (non-blocking)
-    setTimeout(() => {
-      alert("AI Assistant Detected. This may violate test policy.");
-    }, 100);
+    // Throttled alert system - show only once per session or after 10 second intervals
+    if (!aiWarningShown || (now - lastAlertTime > 10000)) {
+      setTimeout(() => {
+        alert("AI Assistant Detected. This may violate test policy.");
+      }, 100);
+      aiWarningShown = true;
+      lastAlertTime = now;
+    }
     
-    // Optional: Send to backend
+    // Optional: Send to backend (only if session active)
     try {
       fetch('/log/ai-overlay', {
         method: 'POST',
@@ -65,8 +109,10 @@ export function startAIOverlayDetection() {
     }
   };
 
-  // Check for AI-related selectors
+  // Check for AI-related selectors (only during active session)
   const scanForAIElements = () => {
+    if (!sessionActive || isDevSafeEnvironment()) return;
+    
     AI_SELECTORS.forEach(selector => {
       try {
         const elements = document.querySelectorAll(selector);
@@ -87,8 +133,10 @@ export function startAIOverlayDetection() {
     });
   };
 
-  // Check for AI-related text content
+  // Check for AI-related text content (only during active session)
   const scanForAIText = (node) => {
+    if (!sessionActive || isDevSafeEnvironment()) return;
+    
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent.trim();
       if (text.length > 10) {
@@ -104,8 +152,10 @@ export function startAIOverlayDetection() {
     }
   };
 
-  // Check for shadow DOM
+  // Check for shadow DOM (only during active session)
   const scanForShadowDOM = (node) => {
+    if (!sessionActive || isDevSafeEnvironment()) return;
+    
     if (node.shadowRoot && !shadowDOMNodes.has(node)) {
       shadowDOMNodes.add(node);
       logDetection('shadow_dom_detected', {
@@ -116,8 +166,10 @@ export function startAIOverlayDetection() {
     }
   };
 
-  // Check for suspicious high z-index overlays
+  // Check for suspicious high z-index overlays (only during active session)
   const scanForSuspiciousOverlays = () => {
+    if (!sessionActive || isDevSafeEnvironment()) return;
+    
     const allElements = document.querySelectorAll('*');
     allElements.forEach(el => {
       const style = window.getComputedStyle(el);
@@ -139,8 +191,10 @@ export function startAIOverlayDetection() {
     });
   };
 
-  // MutationObserver callback
+  // MutationObserver callback (respects session state)
   const handleMutations = (mutations) => {
+    if (!sessionActive || isDevSafeEnvironment()) return;
+    
     mutations.forEach(mutation => {
       if (mutation.type === 'childList') {
         mutation.addedNodes.forEach(node => {
@@ -179,14 +233,18 @@ export function startAIOverlayDetection() {
     attributeFilter: ['class', 'id', 'style']
   });
 
-  // Initial scan
-  scanForAIElements();
-  scanForSuspiciousOverlays();
-
-  // Periodic checks (every 5 seconds)
-  const periodicCheck = setInterval(() => {
+  // Initial scan (only if session active)
+  if (sessionActive && !isDevSafeEnvironment()) {
     scanForAIElements();
     scanForSuspiciousOverlays();
+  }
+
+  // Periodic checks with session control (every 5 seconds)
+  const periodicCheck = setInterval(() => {
+    if (sessionActive && !isDevSafeEnvironment()) {
+      scanForAIElements();
+      scanForSuspiciousOverlays();
+    }
   }, 5000);
 
   // Cleanup function
@@ -196,7 +254,7 @@ export function startAIOverlayDetection() {
   };
 }
 
-// Auto-start detection when module loads
+// Auto-start detection when module loads (but inactive until session starts)
 if (typeof window !== 'undefined') {
   // Start after DOM is ready
   if (document.readyState === 'loading') {
