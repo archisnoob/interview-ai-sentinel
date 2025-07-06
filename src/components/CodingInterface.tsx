@@ -1,11 +1,9 @@
 
 import React, { useState, useRef } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Save, AlertTriangle, CheckCircle, Clock, User } from 'lucide-react';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { SessionControls } from '@/components/coding-interface/SessionControls';
+import { FlagSummary } from '@/components/coding-interface/FlagSummary';
+import { CodeEditor } from '@/components/coding-interface/CodeEditor';
 import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
 import RealTimeMonitor from '@/components/RealTimeMonitor';
@@ -323,17 +321,6 @@ const CodingInterface = () => {
     });
   };
 
-  const getVerdictColor = () => {
-    if (liveDetectionFlags.length === 0) return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-    if (liveDetectionFlags.length >= 2) return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-    return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-  };
-
-  const getVerdictIcon = () => {
-    if (liveDetectionFlags.length === 0) return <CheckCircle className="h-4 w-4" />;
-    if (liveDetectionFlags.length >= 2) return <AlertTriangle className="h-4 w-4" />;
-    return <Clock className="h-4 w-4" />;
-  };
 
   // Check for AI-related flags
   const hasAIDetection = aiPasteEvents.some(event => 
@@ -344,135 +331,35 @@ const CodingInterface = () => {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Coding Area */}
       <div className="lg:col-span-2 space-y-6">
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardHeader className="bg-gray-900">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-gray-900 dark:text-gray-100">Interview Platform</CardTitle>
-              <div className="flex items-center space-x-2">
-                <Badge className={getVerdictColor()}>
-                  {getVerdictIcon()}
-                  <span className="ml-1">
-                    {liveDetectionFlags.length === 0 ? 'Normal' : liveDetectionFlags.length >= 2 ? 'High Risk' : 'Suspicious'}
-                  </span>
-                </Badge>
-                {sessionActive && liveDetectionFlags.length > 0 && (
-                  <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">
-                    {liveDetectionFlags.length} flags
-                  </Badge>
-                )}
-                {hasAIDetection && (
-                  <Badge variant="destructive" className="text-xs">
-                    ⚠ AI Content
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4 bg-gray-900">
-            {/* Form inputs and session controls */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input 
-                type="text" 
-                placeholder="Candidate Name" 
-                value={candidateName} 
-                onChange={e => setCandidateName(e.target.value)} 
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" 
-                disabled={sessionActive} 
-              />
-              
-              <Select 
-                value={candidateType} 
-                onValueChange={(value: 'Freshman Intern' | 'Pro/Competitive Coder') => setCandidateType(value)} 
-                disabled={sessionActive}
-              >
-                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-                  <User className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Select Candidate Type" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
-                  <SelectItem value="Freshman Intern" className="text-gray-900 dark:text-gray-100">Freshman Intern</SelectItem>
-                  <SelectItem value="Pro/Competitive Coder" className="text-gray-900 dark:text-gray-100">Pro/Competitive Coder</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <div className="flex space-x-2">
-                {!sessionActive ? (
-                  <Button onClick={startSession} className="flex-1">
-                    Start Session
-                  </Button>
-                ) : (
-                  <Button onClick={endSession} variant="destructive" className="flex-1">
-                    End Session
-                  </Button>
-                )}
-                {!sessionActive && (
-                  <Button onClick={resetSession} variant="outline" className="px-3">
-                    Reset
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Profile Information */}
-            {!sessionActive && (
-              <div className="p-3 border border-blue-200 dark:border-blue-800 rounded-md bg-blue-50 dark:bg-blue-900/20">
-                <h4 className="text-sm font-medium mb-2 text-blue-800 dark:text-blue-200">
-                  Selected Profile: {candidateType}
-                </h4>
-                <div className="grid grid-cols-3 gap-4 text-xs text-blue-700 dark:text-blue-300">
-                  <div>
-                    <strong>Initial Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '75' : '45'}s
-                  </div>
-                  <div>
-                    <strong>Idle Pause:</strong> &lt;{candidateType === 'Freshman Intern' ? '40' : '25'}s
-                  </div>
-                  <div>
-                    <strong>Edit Delay:</strong> &lt;{candidateType === 'Freshman Intern' ? '60' : '30'}s
-                  </div>
-                </div>
-              </div>
-            )}
+        <Card className="bg-card border-border">
+          <CardContent className="space-y-4 p-6">
+            <SessionControls
+              candidateName={candidateName}
+              setCandidateName={setCandidateName}
+              candidateType={candidateType}
+              setCandidateType={setCandidateType}
+              sessionActive={sessionActive}
+              startSession={startSession}
+              endSession={endSession}
+              resetSession={resetSession}
+              liveDetectionFlags={liveDetectionFlags}
+              hasAIDetection={hasAIDetection}
+            />
             
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Problem: Implement a function to reverse a string efficiently
-              </label>
-              <Textarea 
-                ref={textareaRef} 
-                placeholder="Write your code here..." 
-                value={code} 
-                onChange={e => setCode(e.target.value)} 
-                onKeyDown={handleKeyDown} 
-                onPaste={handlePaste} 
-                className="min-h-96 font-mono text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" 
-                disabled={!sessionActive} 
-              />
-            </div>
+            <CodeEditor
+              code={code}
+              setCode={setCode}
+              sessionActive={sessionActive}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              textareaRef={textareaRef}
+              runCode={runCode}
+            />
 
-            {/* Live Detection Flags */}
-            {sessionActive && liveDetectionFlags.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-red-800 dark:text-red-400">Live Detection Flags:</h4>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {liveDetectionFlags.slice(-5).map((flag, index) => (
-                    <Badge key={index} variant="destructive" className="text-xs block w-full">
-                      {flag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            <div className="flex space-x-2">
-              <Button onClick={runCode} disabled={!sessionActive}>
-                <Play className="h-4 w-4 mr-2" />
-                Run Code
-              </Button>
-              <Button onClick={() => console.log('Saving...', code)} variant="outline" disabled={!sessionActive}>
-                <Save className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-            </div>
+            <FlagSummary
+              sessionActive={sessionActive}
+              liveDetectionFlags={liveDetectionFlags}
+            />
           </CardContent>
         </Card>
 

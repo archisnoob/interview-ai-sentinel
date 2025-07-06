@@ -115,21 +115,21 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
                 <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Sessions</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalSessions}</p>
+                <p className="text-sm text-muted-foreground">Total Sessions</p>
+                <p className="text-2xl font-bold text-foreground">{totalSessions}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
@@ -137,13 +137,13 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-green-600 dark:text-green-400">Human</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{humanCount}</p>
+                <p className="text-2xl font-bold text-foreground">{humanCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-full">
@@ -151,13 +151,13 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-yellow-600 dark:text-yellow-400">Likely Bot</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{botCount}</p>
+                <p className="text-2xl font-bold text-foreground">{botCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-card border-border">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
@@ -165,7 +165,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-red-600 dark:text-red-400">AI Assisted</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{aiAssistedCount}</p>
+                <p className="text-2xl font-bold text-foreground">{aiAssistedCount}</p>
               </div>
             </div>
           </CardContent>
@@ -173,48 +173,48 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Dashboard */}
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardHeader className="bg-white dark:bg-gray-800">
+      <Card className="bg-card border-border">
+        <CardHeader className="bg-card">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-gray-100">
+            <CardTitle className="flex items-center space-x-2 text-foreground">
               <Filter className="h-5 w-5" />
               <span className="mx-[18px] my-0">Admin Dashboard</span>
             </CardTitle>
             <div className="flex space-x-2">
-              <Button onClick={loadSessions} variant="outline" disabled={isLoading} className="border-gray-300 dark:border-gray-600">
+              <Button onClick={loadSessions} variant="outline" disabled={isLoading} className="border-border">
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <Button onClick={exportData} variant="outline" disabled={filteredSessions.length === 0} className="border-gray-300 dark:border-gray-600">
+              <Button onClick={exportData} variant="outline" disabled={filteredSessions.length === 0} className="border-border">
                 <Download className="h-4 w-4 mr-2" />
                 Export ({filteredSessions.length})
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="bg-white dark:bg-gray-800">
+        <CardContent className="bg-card">
           {/* Filters */}
           <div className="flex space-x-4 mb-6">
             <Select value={filterVerdict} onValueChange={setFilterVerdict}>
-              <SelectTrigger className="w-48 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+              <SelectTrigger className="w-48 bg-background border-input text-foreground">
                 <SelectValue placeholder="Filter by Verdict" />
               </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
-                <SelectItem value="all" className="text-gray-900 dark:text-gray-100">All Verdicts</SelectItem>
-                <SelectItem value="Human" className="text-gray-900 dark:text-gray-100">Human</SelectItem>
-                <SelectItem value="Likely Bot" className="text-gray-900 dark:text-gray-100">Likely Bot</SelectItem>
-                <SelectItem value="AI Assisted" className="text-gray-900 dark:text-gray-100">AI Assisted</SelectItem>
+              <SelectContent className="bg-popover border-border">
+                <SelectItem value="all" className="text-popover-foreground">All Verdicts</SelectItem>
+                <SelectItem value="Human" className="text-popover-foreground">Human</SelectItem>
+                <SelectItem value="Likely Bot" className="text-popover-foreground">Likely Bot</SelectItem>
+                <SelectItem value="AI Assisted" className="text-popover-foreground">AI Assisted</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={filterCandidateType} onValueChange={setFilterCandidateType}>
-              <SelectTrigger className="w-48 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+              <SelectTrigger className="w-48 bg-background border-input text-foreground">
                 <SelectValue placeholder="Filter by Candidate Type" />
               </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
-                <SelectItem value="all" className="text-gray-900 dark:text-gray-100">All Types</SelectItem>
-                <SelectItem value="Freshman Intern" className="text-gray-900 dark:text-gray-100">Freshman Intern</SelectItem>
-                <SelectItem value="Pro/Competitive Coder" className="text-gray-900 dark:text-gray-100">Pro/Competitive Coder</SelectItem>
+              <SelectContent className="bg-popover border-border">
+                <SelectItem value="all" className="text-popover-foreground">All Types</SelectItem>
+                <SelectItem value="Freshman Intern" className="text-popover-foreground">Freshman Intern</SelectItem>
+                <SelectItem value="Pro/Competitive Coder" className="text-popover-foreground">Pro/Competitive Coder</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -222,20 +222,20 @@ const AdminDashboard = () => {
           {/* Sessions List */}
           <div className="space-y-4">
             {filteredSessions.length === 0 && !isLoading && (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <div className="text-center py-8 text-muted-foreground">
                 {sessions.length === 0 ? 'No sessions recorded yet. Start an interview to see data here.' : 'No sessions match the current filters'}
               </div>
             )}
 
             {filteredSessions.map(session => (
-              <Card key={session.id} className="border-l-4 border-l-gray-200 dark:border-l-gray-600 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <Card key={session.id} className="border-l-4 border-l-border bg-card border-border">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Basic Info */}
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{session.candidateName}</h3>
-                        <Badge className="text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">{session.candidateType}</Badge>
+                        <h3 className="text-lg font-semibold text-foreground">{session.candidateName}</h3>
+                        <Badge className="text-xs bg-muted text-muted-foreground">{session.candidateType}</Badge>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge className={getVerdictColor(session.verdict)}>
@@ -243,55 +243,55 @@ const AdminDashboard = () => {
                           <span className="ml-1">{session.verdict}</span>
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-muted-foreground">
                         Started: {new Date(session.timestamp).toLocaleString()}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-muted-foreground">
                         Duration: {formatDuration(session.duration)}
                       </p>
                     </div>
 
                     {/* Typing Stats */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-700 dark:text-gray-300">Typing Stats</h4>
+                      <h4 className="font-medium text-foreground">Typing Stats</h4>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Total WPM:</span>
-                          <span className="ml-2 font-semibold text-gray-900 dark:text-gray-100">{session.typingStats?.totalWPM || 0}</span>
+                          <span className="text-muted-foreground">Total WPM:</span>
+                          <span className="ml-2 font-semibold text-foreground">{session.typingStats?.totalWPM || 0}</span>
                         </div>
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Total Time:</span>
-                          <span className="ml-2 font-semibold text-gray-900 dark:text-gray-100">{session.typingStats?.totalTime || 0}m</span>
+                          <span className="text-muted-foreground">Total Time:</span>
+                          <span className="ml-2 font-semibold text-foreground">{session.typingStats?.totalTime || 0}m</span>
                         </div>
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Lines of Code:</span>
-                          <span className="ml-2 font-semibold text-gray-900 dark:text-gray-100">{session.typingStats?.linesOfCode || 0}</span>
+                          <span className="text-muted-foreground">Lines of Code:</span>
+                          <span className="ml-2 font-semibold text-foreground">{session.typingStats?.linesOfCode || 0}</span>
                         </div>
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Typing Bursts:</span>
-                          <span className="ml-2 font-semibold text-gray-900 dark:text-gray-100">{session.typingStats?.typingBursts || 0}</span>
+                          <span className="text-muted-foreground">Typing Bursts:</span>
+                          <span className="ml-2 font-semibold text-foreground">{session.typingStats?.typingBursts || 0}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Code Analysis */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-700 dark:text-gray-300">Code Analysis</h4>
+                      <h4 className="font-medium text-foreground">Code Analysis</h4>
                       <div className="text-sm space-y-1">
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Characters:</span>
-                          <span className="ml-2 font-semibold text-gray-900 dark:text-gray-100">{session.code?.length || 0}</span>
+                          <span className="text-muted-foreground">Characters:</span>
+                          <span className="ml-2 font-semibold text-foreground">{session.code?.length || 0}</span>
                         </div>
                         <div>
-                          <span className="text-gray-600 dark:text-gray-400">Typing Events:</span>
-                          <span className="ml-2 font-semibold text-gray-900 dark:text-gray-100">{session.typingEvents?.length || 0}</span>
+                          <span className="text-muted-foreground">Typing Events:</span>
+                          <span className="ml-2 font-semibold text-foreground">{session.typingEvents?.length || 0}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Detection Flags */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-gray-700 dark:text-gray-300">Detection Flags ({session.detectionFlags?.length || 0})</h4>
+                      <h4 className="font-medium text-foreground">Detection Flags ({session.detectionFlags?.length || 0})</h4>
                       {!session.detectionFlags || session.detectionFlags.length === 0 ? (
                         <p className="text-sm text-green-600 dark:text-green-400">No suspicious activities detected</p>
                       ) : (
