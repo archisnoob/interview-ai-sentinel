@@ -1,0 +1,48 @@
+[
+  {
+    "id": "two-sum",
+    "slug": "two-sum",
+    "title": "Two Sum",
+    "difficulty": "Easy",
+    "tags": ["Array", "Hash Table"],
+    "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\nAssume exactly one solution and no element can be reused.",
+    "constraints": [
+      "2 <= nums.length <= 10^4",
+      "-10^9 <= nums[i] <= 10^9",
+      "-10^9 <= target <= 10^9"
+    ],
+    "examples": [
+      { "input": "4\n2 7 11 15\n9\n", "output": "0 1\n" }
+    ],
+    "testCases": [
+      { "input": "4\n2 7 11 15\n9\n", "expectedOutput": "0 1\n" },
+      { "input": "3\n3 2 4\n6\n", "expectedOutput": "1 2\n" },
+      { "input": "2\n3 3\n6\n", "expectedOutput": "0 1\n" }
+    ],
+    "codeTemplates": {
+      "python": "# Python 3\nimport sys\n\ndef solve(data: str):\n    it = iter(data.strip().split())\n    n = int(next(it)); arr=[int(next(it)) for _ in range(n)]; t=int(next(it))\n    m = {}\n    for i,x in enumerate(arr):\n        if t-x in m:\n            print(m[t-x], i)\n            return\n        m[x]=i\n    print(\"-1 -1\")\n\nif __name__ == \"__main__\":\n    solve(sys.stdin.read())\n",
+      "javascript": "// Node.js\nconst fs=require('fs');\nconst input=fs.readFileSync(0,'utf8').trim().split(/\\s+/);\nlet idx=0; const n=+input[idx++]; const a=[]; for(let i=0;i<n;i++) a.push(+input[idx++]); const t=+input[idx++];\nconst m=new Map(); for(let i=0;i<n;i++){ const need=t-a[i]; if(m.has(need)){ console.log(m.get(need)+\" \"+i); process.exit(0);} m.set(a[i], i);} console.log(\"-1 -1\");\n",
+      "cpp": "#include <bits/stdc++.h>\nusing namespace std;int main(){ios::sync_with_stdio(false);cin.tie(nullptr);\nint n; if(!(cin>>n)) return 0; vector<long long>a(n); for(int i=0;i<n;++i)cin>>a[i]; long long t;cin>>t; unordered_map<long long,int> m; for(int i=0;i<n;++i){ if(m.count(t-a[i])){ cout<<m[t-a[i]]<<\" \"<<i<<\"\\n\"; return 0;} m[a[i]]=i;} cout<<\"-1 -1\\n\";}\n",
+      "java": "import java.util.*; public class Main { public static void main(String[] args){ Scanner sc=new Scanner(System.in); int n=sc.nextInt(); long[] a=new long[n]; for(int i=0;i<n;i++) a[i]=sc.nextLong(); long t=sc.nextLong(); Map<Long,Integer> m=new HashMap<>(); for(int i=0;i<n;i++){ long need=t-a[i]; if(m.containsKey(need)){ System.out.println(m.get(need)+\" \"+i); return;} m.put(a[i],i);} System.out.println(\"-1 -1\"); }}",
+      "csharp": "using System; using System.Collections.Generic; class Program{ static void Main(){ var it=new System.IO.StreamReader(Console.OpenStandardInput()); var data=it.ReadToEnd().Split((char[])null,StringSplitOptions.RemoveEmptyEntries); int p=0; int n=int.Parse(data[p++]); var a=new long[n]; for(int i=0;i<n;i++) a[i]=long.Parse(data[p++]); long t=long.Parse(data[p++]); var m=new Dictionary<long,int>(); for(int i=0;i<n;i++){ long need=t-a[i]; if(m.ContainsKey(need)){ Console.WriteLine($\"{m[need]} {i}\"); return;} m[a[i]]=i;} Console.WriteLine(\"-1 -1\"); }}\n"
+    }
+  },
+  {
+    "id": "reverse-words",
+    "slug": "reverse-words",
+    "title": "Reverse Words in a String",
+    "difficulty": "Medium",
+    "tags": ["String", "Two Pointers"],
+    "description": "Given a string s, reverse the order of words.\nA word is a maximal substring consisting of non-space characters only.",
+    "constraints": ["1 <= s.length <= 1e5"],
+    "examples": [{ "input": "the sky is blue\n", "output": "blue is sky the\n" }],
+    "testCases": [
+      { "input": "the sky is blue\n", "expectedOutput": "blue is sky the\n" },
+      { "input": "  hello   world  \n", "expectedOutput": "world hello\n" }
+    ],
+    "codeTemplates": {
+      "python": "# Python 3\nimport sys\ns=sys.stdin.read().strip()\nprint(' '.join(reversed(s.split())))\n",
+      "javascript": "// Node.js\nconst fs=require('fs');\nconst s=fs.readFileSync(0,'utf8');\nconsole.log(s.trim().split(/\\s+/).reverse().join(' '));\n"
+    }
+  }
+]
