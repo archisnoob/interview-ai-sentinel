@@ -59,16 +59,25 @@ const CodingInterface = () => {
 
   // Check feature flag on mount
   useEffect(() => {
+    console.log('Checking feature flag...');
     const enabled = typeof window !== "undefined" && 
       (window.localStorage?.getItem('FEATURE_CODEBOARD') === 'true' || 
        import.meta.env.VITE_FEATURE_CODEBOARD === 'true');
+    console.log('Feature enabled:', enabled);
     setFeatureCodeBoard(enabled);
     
     if (enabled) {
+      console.log('Loading random problem...');
       // Load a random problem when feature is enabled
       problemService.getRandomProblem()
-        .then(setProblem)
-        .catch(() => setProblem(null));
+        .then((problem) => {
+          console.log('Problem loaded:', problem);
+          setProblem(problem);
+        })
+        .catch((error) => {
+          console.error('Failed to load problem:', error);
+          setProblem(null);
+        });
     }
   }, []);
   
