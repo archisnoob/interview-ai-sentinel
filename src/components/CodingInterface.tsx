@@ -1,9 +1,12 @@
 
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SessionControls } from '@/components/coding-interface/SessionControls';
 import { FlagSummary } from '@/components/coding-interface/FlagSummary';
 import { CodeEditor } from '@/components/coding-interface/CodeEditor';
+import { LeetCodeInterface } from '@/components/leetcode/LeetCodeInterface';
 import { useToast } from '@/hooks/use-toast';
 import TypingAnalyzer from '@/components/TypingAnalyzer';
 import RealTimeMonitor from '@/components/RealTimeMonitor';
@@ -15,6 +18,7 @@ import { AIPasteDetector, AIPasteEvent } from '@/services/aiPasteDetector';
 import { sessionManager } from '@/services/sessionManager';
 import { setDetectionSessionActive } from '@/utils/ai-overlay-detector';
 import TypingSpeedMonitor from '@/components/TypingSpeedMonitor';
+import { Code, BookOpen } from 'lucide-react';
 
 const CodingInterface = () => {
   // Initialize with clean state from session manager
@@ -32,6 +36,7 @@ const CodingInterface = () => {
   const [aiPasteEvents, setAiPasteEvents] = useState<AIPasteEvent[]>(cleanState.aiPasteEvents || []);
   const [aiPasteDetector, setAiPasteDetector] = useState<AIPasteDetector | null>(cleanState.aiPasteDetector || null);
   const [typingSpeed, setTypingSpeed] = useState(0);
+  const [interfaceMode, setInterfaceMode] = useState<'original' | 'leetcode'>('original');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   
@@ -328,75 +333,175 @@ const CodingInterface = () => {
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Main Coding Area */}
-      <div className="lg:col-span-2 space-y-6">
-        <Card className="bg-card border-border">
-          <CardContent className="space-y-4 p-6">
-            <SessionControls
-              candidateName={candidateName}
-              setCandidateName={setCandidateName}
-              candidateType={candidateType}
-              setCandidateType={setCandidateType}
-              sessionActive={sessionActive}
-              startSession={startSession}
-              endSession={endSession}
-              resetSession={resetSession}
-              liveDetectionFlags={liveDetectionFlags}
-              hasAIDetection={hasAIDetection}
+    <div className="space-y-6">
+      {/* Interface Mode Toggle */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg">Coding Interface</h3>
+              <p className="text-sm text-muted-foreground">
+                Choose between original interview mode or LeetCode-style practice
+              </p>
+            </div>
+            <Tabs value={interfaceMode} onValueChange={(value) => setInterfaceMode(value as 'original' | 'leetcode')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="original" className="flex items-center space-x-2">
+                  <Code className="h-4 w-4" />
+                  <span>Interview Mode</span>
+                </TabsTrigger>
+                <TabsTrigger value="leetcode" className="flex items-center space-x-2">
+                  <BookOpen className="h-4 w-4" />
+                  <span>LeetCode Mode</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+
+      {interfaceMode === 'original' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Coding Area */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="bg-card border-border">
+              <CardContent className="space-y-4 p-6">
+                <SessionControls
+                  candidateName={candidateName}
+                  setCandidateName={setCandidateName}
+                  candidateType={candidateType}
+                  setCandidateType={setCandidateType}
+                  sessionActive={sessionActive}
+                  startSession={startSession}
+                  endSession={endSession}
+                  resetSession={resetSession}
+                  liveDetectionFlags={liveDetectionFlags}
+                  hasAIDetection={hasAIDetection}
+                />
+                
+                <CodeEditor
+                  code={code}
+                  setCode={setCode}
+                  sessionActive={sessionActive}
+                  onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
+                  textareaRef={textareaRef}
+                  runCode={runCode}
+                />
+
+                <FlagSummary
+                  sessionActive={sessionActive}
+                  liveDetectionFlags={liveDetectionFlags}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Risk Verdict Display */}
+            <RiskVerdictDisplay 
+              detectionResult={finalDetectionResult} 
+              isVisible={!sessionActive && finalDetectionResult !== null} 
+            />
+          </div>
+
+          {/* Monitoring Panel */}
+          <div className="space-y-6">
+            <TypingAnalyzer 
+              typingEvents={typingEvents} 
+              isActive={sessionActive} 
+              profile={currentProfile} 
+              onSuspiciousActivity={activity => {
+                addLiveFlag(activity);
+                toast({
+                  title: "Suspicious Activity",
+                  description: activity,
+                  variant: "destructive"
+                });
+              }}
+              aiPasteEvents={aiPasteEvents}
             />
             
-            <CodeEditor
-              code={code}
-              setCode={setCode}
-              sessionActive={sessionActive}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              textareaRef={textareaRef}
-              runCode={runCode}
+            <TypingSpeedMonitor speed={typingSpeed} isActive={sessionActive} />
+            
+            <RealTimeMonitor 
+              isActive={sessionActive} 
+              tabSwitches={tabSwitches} 
+              onSuspiciousActivity={activity => {
+                setLiveDetectionFlags(prev => [...prev, activity]);
+              }} 
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-300px)]">
+          {/* LeetCode Interface */}
+          <div className="lg:col-span-3">
+            <Card className="h-full bg-card border-border">
+              <LeetCodeInterface
+                sessionActive={sessionActive}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                onCodeChange={setCode}
+              />
+            </Card>
+          </div>
+
+          {/* Monitoring Panel (Compact) */}
+          <div className="space-y-4">
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <h4 className="font-medium text-sm">Session Control</h4>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <SessionControls
+                  candidateName={candidateName}
+                  setCandidateName={setCandidateName}
+                  candidateType={candidateType}
+                  setCandidateType={setCandidateType}
+                  sessionActive={sessionActive}
+                  startSession={startSession}
+                  endSession={endSession}
+                  resetSession={resetSession}
+                  liveDetectionFlags={liveDetectionFlags}
+                  hasAIDetection={hasAIDetection}
+                />
+              </CardContent>
+            </Card>
+
+            <TypingAnalyzer 
+              typingEvents={typingEvents} 
+              isActive={sessionActive} 
+              profile={currentProfile} 
+              onSuspiciousActivity={activity => {
+                addLiveFlag(activity);
+                toast({
+                  title: "Suspicious Activity",
+                  description: activity,
+                  variant: "destructive"
+                });
+              }}
+              aiPasteEvents={aiPasteEvents}
+            />
+            
+            <TypingSpeedMonitor speed={typingSpeed} isActive={sessionActive} />
+            
+            <RealTimeMonitor 
+              isActive={sessionActive} 
+              tabSwitches={tabSwitches} 
+              onSuspiciousActivity={activity => {
+                setLiveDetectionFlags(prev => [...prev, activity]);
+              }} 
             />
 
-            <FlagSummary
-              sessionActive={sessionActive}
-              liveDetectionFlags={liveDetectionFlags}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Risk Verdict Display */}
-        <RiskVerdictDisplay 
-          detectionResult={finalDetectionResult} 
-          isVisible={!sessionActive && finalDetectionResult !== null} 
-        />
-      </div>
-
-      {/* Monitoring Panel */}
-      <div className="space-y-6">
-        <TypingAnalyzer 
-          typingEvents={typingEvents} 
-          isActive={sessionActive} 
-          profile={currentProfile} 
-          onSuspiciousActivity={activity => {
-            addLiveFlag(activity);
-            toast({
-              title: "Suspicious Activity",
-              description: activity,
-              variant: "destructive"
-            });
-          }}
-          aiPasteEvents={aiPasteEvents}
-        />
-        
-        <TypingSpeedMonitor speed={typingSpeed} isActive={sessionActive} />
-        
-        <RealTimeMonitor 
-          isActive={sessionActive} 
-          tabSwitches={tabSwitches} 
-          onSuspiciousActivity={activity => {
-            setLiveDetectionFlags(prev => [...prev, activity]);
-          }} 
-        />
-      </div>
+            {/* Risk Verdict Display (Compact) */}
+            {!sessionActive && finalDetectionResult !== null && (
+              <RiskVerdictDisplay 
+                detectionResult={finalDetectionResult} 
+                isVisible={true} 
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
