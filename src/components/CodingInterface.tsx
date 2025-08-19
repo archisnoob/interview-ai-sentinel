@@ -61,7 +61,7 @@ const CodingInterface = () => {
   useEffect(() => {
     const enabled = typeof window !== "undefined" && 
       (window.localStorage?.getItem('FEATURE_CODEBOARD') === 'true' || 
-       process.env.FEATURE_CODEBOARD === 'true');
+       import.meta.env.VITE_FEATURE_CODEBOARD === 'true');
     setFeatureCodeBoard(enabled);
     
     if (enabled) {
