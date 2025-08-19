@@ -16,17 +16,17 @@ import { sessionManager } from '@/services/sessionManager';
 import { setDetectionSessionActive } from '@/utils/ai-overlay-detector';
 import TypingSpeedMonitor from '@/components/TypingSpeedMonitor';
 
-// LeetCode-style interface components
-import EditorWithDetection from '@/features/codeboard/components/EditorWithDetection';
-import LanguageSelector from '@/features/codeboard/components/LanguageSelector';
-import ProblemPanel from '@/features/codeboard/components/ProblemPanel';
-import OutputPanel from '@/features/codeboard/components/OutputPanel';
-import TestCasesPanel from '@/features/codeboard/components/TestCasesPanel';
-import { LANGUAGE_CATALOG, DEFAULT_STARTERS, LanguageKey } from '@/features/codeboard/lib/languages';
-import { problemService } from '@/services/problemService';
-import { judgeService } from '@/services/judgeService';
-import type { Problem } from '@/types/problem';
-import { forwardCodeChange, forwardKeystroke, forwardPaste } from '@/features/codeboard/lib/detectionBridge';
+// Simple feature flag for now - comment out imports that might be causing issues
+// import EditorWithDetection from '@/features/codeboard/components/EditorWithDetection';
+// import LanguageSelector from '@/features/codeboard/components/LanguageSelector';
+// import ProblemPanel from '@/features/codeboard/components/ProblemPanel';
+// import OutputPanel from '@/features/codeboard/components/OutputPanel';
+// import TestCasesPanel from '@/features/codeboard/components/TestCasesPanel';
+// import { LANGUAGE_CATALOG, DEFAULT_STARTERS, LanguageKey } from '@/features/codeboard/lib/languages';
+// import { problemService } from '@/services/problemService';
+// import { judgeService } from '@/services/judgeService';
+// import type { Problem } from '@/types/problem';
+// import { forwardCodeChange, forwardKeystroke, forwardPaste } from '@/features/codeboard/lib/detectionBridge';
 
 const CodingInterface = () => {
   // Initialize with clean state from session manager
@@ -47,38 +47,17 @@ const CodingInterface = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
-  // LeetCode-style interface state
+  // Simple feature flag for testing
   const [featureCodeBoard, setFeatureCodeBoard] = useState(false);
-  const [problem, setProblem] = useState<Problem | null>(null);
-  const [langKey, setLangKey] = useState<LanguageKey>("python");
-  const [tab, setTab] = useState<"problem" | "code" | "tests" | "output">("code");
-  const [customInput, setCustomInput] = useState<string>("");
-  const [running, setRunning] = useState<boolean>(false);
-  const [singleOutput, setSingleOutput] = useState<any>(null);
-  const [batch, setBatch] = useState<any>(null);
 
-  // Check feature flag on mount
+  // Simple test for the feature flag
   useEffect(() => {
+    console.log('CodingInterface component mounted');
     console.log('Checking feature flag...');
     const enabled = typeof window !== "undefined" && 
-      (window.localStorage?.getItem('FEATURE_CODEBOARD') === 'true' || 
-       import.meta.env.VITE_FEATURE_CODEBOARD === 'true');
+      window.localStorage?.getItem('FEATURE_CODEBOARD') === 'true';
     console.log('Feature enabled:', enabled);
     setFeatureCodeBoard(enabled);
-    
-    if (enabled) {
-      console.log('Loading random problem...');
-      // Load a random problem when feature is enabled
-      problemService.getRandomProblem()
-        .then((problem) => {
-          console.log('Problem loaded:', problem);
-          setProblem(problem);
-        })
-        .catch((error) => {
-          console.error('Failed to load problem:', error);
-          setProblem(null);
-        });
-    }
   }, []);
   
   const currentProfile = candidateType === 'Freshman Intern' ? CANDIDATE_PROFILES.intern : CANDIDATE_PROFILES.professional;
@@ -360,114 +339,19 @@ const CodingInterface = () => {
     }
   };
 
-  const runCode = async () => {
-    if (!featureCodeBoard) {
+  const runCode = () => {
+    if (featureCodeBoard) {
+      toast({
+        title: "LeetCode Mode",
+        description: "Feature is enabled! (Full implementation coming soon)"
+      });
+    } else {
       toast({
         title: "Code Execution",
         description: "In a real environment, this would execute the code safely"
       });
-      return;
-    }
-
-    if (!code) return;
-    setRunning(true);
-    setTab("output");
-    setBatch(null);
-    setSingleOutput(null);
-    
-    try {
-      const result = await judgeService.runCode({
-        sourceCode: code,
-        languageId: LANGUAGE_CATALOG.find(l => l.key === langKey)!.id,
-        stdin: customInput || (problem?.examples?.[0]?.input ?? ""),
-      });
-      setSingleOutput(result as any);
-    } catch (e: any) {
-      setSingleOutput({ status: "Client Error", stdout: "", stderr: String(e), compile_output: "" });
-    } finally {
-      setRunning(false);
     }
   };
-
-  const runAllTests = async () => {
-    if (!code || !problem) return;
-    setRunning(true);
-    setTab("tests");
-    setSingleOutput(null);
-    setBatch(null);
-    
-    try {
-      const result = await judgeService.runCode({
-        sourceCode: code,
-        languageId: LANGUAGE_CATALOG.find(l => l.key === langKey)!.id,
-        testCases: problem.testCases || [],
-      });
-      setBatch(result as any);
-    } catch (e) {
-      setBatch({ results: [], summary: { total: 0, passed: 0, failed: 0 } } as any);
-    } finally {
-      setRunning(false);
-    }
-  };
-
-  // Set up detection bridge for Monaco editor events
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.__detection = {
-        onKeystroke: (e: KeyboardEvent) => {
-          if (!sessionActive || !aiPasteDetector) return;
-          aiPasteDetector.recordKeystroke();
-          
-          if (shouldLogKey(e.key)) {
-            const event: TypingEvent = {
-              timestamp: Date.now(),
-              type: 'keydown',
-              key: e.key,
-              textLength: code.length,
-              position: 0
-            };
-            setTypingEvents(prev => [...prev, event]);
-          }
-        },
-        onPaste: (e: ClipboardEvent & { textLength?: number }) => {
-          if (!sessionActive || !aiPasteDetector) return;
-          
-          const pastedLength = e.textLength || 0;
-          const event: TypingEvent = {
-            timestamp: Date.now(),
-            type: 'paste',
-            textLength: pastedLength,
-            position: 0
-          };
-          setTypingEvents(prev => [...prev, event]);
-
-          // Simulate paste detection for large pastes
-          if (pastedLength >= 160) {
-            const newFlag = `Large paste content detected (≥${pastedLength} chars)`;
-            addLiveFlag(newFlag);
-          }
-        },
-        onCodeChange: (value: string) => {
-          setCode(value);
-        }
-      };
-    }
-    
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.__detection = undefined;
-      }
-    };
-  }, [sessionActive, aiPasteDetector, code]);
-
-  // Reset code when language or problem changes
-  useEffect(() => {
-    if (!problem || !featureCodeBoard) return;
-    const tmpl = problem.codeTemplates?.[langKey] ?? DEFAULT_STARTERS[langKey];
-    setCode(tmpl || "");
-    setSingleOutput(null);
-    setBatch(null);
-  }, [langKey, problem, featureCodeBoard]);
 
 
   // Check for AI-related flags
@@ -495,86 +379,22 @@ const CodingInterface = () => {
             />
             
             {featureCodeBoard ? (
-              // LeetCode-style interface
-              <div className="space-y-4">
-                {/* Language selector and action buttons */}
-                <div className="flex items-center justify-between gap-3">
-                  <LanguageSelector selected={langKey} onChange={setLangKey} />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={runCode}
-                      disabled={running}
-                      className="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 text-sm disabled:opacity-50"
-                    >
-                      {running ? "Running..." : "Run Code"}
-                    </button>
-                    <button
-                      onClick={runAllTests}
-                      disabled={running || !problem}
-                      className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 text-sm disabled:opacity-50"
-                    >
-                      {running ? "Testing..." : "Submit"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex gap-3 border-b border-border mb-3 text-sm">
-                  {[
-                    { key: "problem", label: "Problem" },
-                    { key: "code", label: "Code" },
-                    { key: "tests", label: "Test Cases" },
-                    { key: "output", label: "Output" },
-                  ].map(t => (
-                    <button
-                      key={t.key}
-                      className={`px-3 py-2 border-b-2 transition-colors ${
-                        tab === (t.key as any) 
-                          ? "border-primary text-primary" 
-                          : "border-transparent text-muted-foreground hover:text-foreground"
-                      }`}
-                      onClick={() => setTab(t.key as any)}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Tab content */}
-                {tab === "problem" && <ProblemPanel problem={problem} />}
-
-                {tab === "code" && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      <EditorWithDetection
-                        language={LANGUAGE_CATALOG.find(l => l.key === langKey)?.monaco ?? "plaintext"}
-                        value={code}
-                        onChange={setCode}
-                        theme="dark"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-foreground">Custom Input</h3>
-                      <textarea
-                        value={customInput}
-                        onChange={(e) => setCustomInput(e.target.value)}
-                        rows={14}
-                        className="w-full rounded-lg border border-border bg-background text-foreground p-3 text-sm"
-                        placeholder="Provide custom input for stdin..."
-                      />
-                      <p className="text-xs text-muted-foreground">If empty, the first sample input is used.</p>
-                    </div>
-                  </div>
-                )}
-
-                {tab === "tests" && (
-                  <TestCasesPanel summary={batch?.summary ?? null} results={batch?.results ?? null} />
-                )}
-
-                {tab === "output" && <OutputPanel result={singleOutput} />}
+              <div className="p-4 border-2 border-dashed border-primary rounded-lg">
+                <h3 className="text-lg font-semibold text-primary mb-2">🚀 LeetCode Mode Enabled!</h3>
+                <p className="text-muted-foreground">
+                  The feature flag is working! Full implementation will be added next.
+                </p>
+                <CodeEditor
+                  code={code}
+                  setCode={setCode}
+                  sessionActive={sessionActive}
+                  onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
+                  textareaRef={textareaRef}
+                  runCode={runCode}
+                />
               </div>
             ) : (
-              // Original code editor
               <CodeEditor
                 code={code}
                 setCode={setCode}
